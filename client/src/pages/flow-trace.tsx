@@ -69,7 +69,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
   const parseJavaCode = () => {
     try {
       // Simple Java parser - in a real implementation, use a proper Java parser
-      const methods: MethodCall[] = [];
+      let methods: MethodCall[] = [];
       const lines = javaCode.split('\n');
       
       let currentClass = '';
@@ -131,18 +131,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
               callMatches.forEach(call => {
                 const [, objectName, methodName] = call.match(/(\w+)\.(\w+)\s*\(/) || [];
                 if (objectName && methodName) {
-                  method.calls.push({
+                  method.calls = [...method.calls, {
                     className: objectName,
                     methodName,
                     returnType: 'Unknown',
                     parameters: [],
                     calls: []
-                  });
+                  }];
                 }
               });
             }
             
-            methods.push(method);
+            methods = [...methods, method];
           }
         }
       }
