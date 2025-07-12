@@ -1,0 +1,3294 @@
+openapi: 3.0.3
+info:
+  title: Ray Flux Backend API
+  description: API for authentication, products, enquiries, contact, and AI chat.
+  version: 1.0.0
+  contact:
+    name: Ray Flux Support
+    email: support@rayflux.in
+  license:
+    name: Proprietary
+    url: https://rayflux.in/license
+
+servers:
+  - url: https://api.rayflux.in/api
+    description: Production server
+  - url: http://localhost:8080/api
+    description: Development server
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSignup'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreatedResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with phone and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Auth token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          description: Auth token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      responses:
+        '200':
+          description: User logged out successfully
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieve a list of all available products
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of products
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+    post:
+      tags:
+        - Products
+      summary: Add a new product
+      description: Create a new product with optional image (Admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+                - price
+                - category
+                - warranty
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Wireless Mouse
+                description:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                  example: Ergonomic wireless mouse with adjustable DPI.
+                price:
+                  type: number
+                  format: double
+                  minimum: 0
+                  example: 29.99
+                category:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: Electronics
+                warranty:
+                  type: integer
+                  minimum: 0
+                  description: Warranty period in months
+                  example: 12
+                image:
+                  type: string
+                  format: binary
+                  description: Product image file (JPEG, PNG, max 5MB) - optional
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Product created successfully
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /products/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieve detailed information about a specific product
+      responses:
+        '200':
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Products
+      summary: Update product
+      description: Update an existing product with optional image (Admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Wireless Mouse Pro
+                description:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                  example: Upgraded ergonomic mouse with Bluetooth.
+                price:
+                  type: number
+                  format: double
+                  minimum: 0
+                  example: 39.99
+                category:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: Electronics
+                warranty:
+                  type: integer
+                  minimum: 0
+                  description: Warranty period in months
+                  example: 24
+                image:
+                  type: string
+                  format: binary
+                  description: New product image file (JPEG, PNG, max 5MB) - optional, replaces existing image
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      description: Delete a product (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '204':
+          description: Product deleted successfully
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/upload-image:
+    post:
+      tags:
+        - Products
+      summary: Upload product image
+      description: Upload an image for a product (Admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - productId
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to upload (JPEG, PNG, max 5MB)
+                productId:
+                  type: integer
+                  description: ID of the product to associate image with
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageUploadResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/image/{filename}:
+    get:
+      tags:
+        - Products
+      summary: Retrieve a product image by filename
+      description: Get product image by filename
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Image filename
+      responses:
+        '200':
+          description: Returns the image file
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieve a list of all available product categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+    post:
+      tags:
+        - Categories
+      summary: Add a new category
+      description: Create a new product category (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Category ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Categories
+      summary: Get category by ID
+      description: Retrieve detailed information about a specific category
+      responses:
+        '200':
+          description: Category detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      description: Update an existing category (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Delete a category (Admin only)
+      responses:
+        '204':
+          description: Category deleted successfully
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Create a new order
+      description: Create a new customer order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /orders/me:
+    get:
+      tags:
+        - Orders
+      summary: Get orders for the authenticated user
+      description: Retrieve all orders for the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of user orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /orders/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Order ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Orders
+      summary: Get order by ID
+      description: Retrieve a specific order by ID
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/all:
+    get:
+      tags:
+        - Orders
+      summary: Get all orders (Admin only)
+      description: Retrieve all orders (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of all orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /orders/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Order ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    put:
+      tags:
+        - Orders
+      summary: Update order status
+      description: Update the status of an order. Users can only cancel their own pending orders (cannot mark as complete or update other statuses). Admins can update any order to any status. Users cannot cancel orders that don't belong to them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /warranties:
+    get:
+      tags:
+        - Warranties
+      summary: Get warranties for the authenticated user
+      description: Retrieve all warranties for the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of user warranties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarrantyListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /warranties/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Warranty ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Warranties
+      summary: Get warranty by ID
+      description: Retrieve a specific warranty by ID
+      responses:
+        '200':
+          description: Warranty details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warranty'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /warranties/all:
+    get:
+      tags:
+        - Warranties
+      summary: Get all warranties (Admin only)
+      description: Retrieve all warranties (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of all warranties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarrantyListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /enquiries:
+    post:
+      tags:
+        - Enquiries
+      summary: Submit an enquiry
+      description: Submit a new enquiry request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnquiryCreate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Enquiry submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enquiry'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /enquiries/me:
+    get:
+      tags:
+        - Enquiries
+      summary: Get enquiries for the authenticated user
+      description: Retrieve all enquiries submitted by the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of user enquiries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnquiryListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /enquiries/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Enquiry ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Enquiries
+      summary: Get enquiry by ID
+      description: Retrieve a specific enquiry by ID
+      responses:
+        '200':
+          description: Enquiry details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enquiry'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /enquiries/all:
+    get:
+      tags:
+        - Enquiries
+      summary: Get all enquiries (Admin only)
+      description: Retrieve all enquiries (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of all enquiries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnquiryListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /enquiries/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Enquiry ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    put:
+      tags:
+        - Enquiries
+      summary: Update enquiry status
+      description: Update the status of an enquiry (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnquiryStatusUpdate'
+      responses:
+        '200':
+          description: Enquiry status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enquiry'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /contact:
+    post:
+      tags:
+        - Contact
+      summary: Submit a contact message
+      description: Submit a contact form message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactCreate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Contact message submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactMessage'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /contact/all:
+    get:
+      tags:
+        - Contact
+      summary: Get all contact messages (Admin only)
+      description: Retrieve all contact messages (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of all contact messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /contact/info:
+    get:
+      tags:
+        - Contact
+      summary: Get company contact information
+      description: Retrieve company contact information
+      responses:
+        '200':
+          description: Returns company contact info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInfo'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Contact
+      summary: Update company contact information
+      description: Update company contact information (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInfoUpdate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Company contact information updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInfo'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Get ChatGPT response
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token to authorize requests
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: ChatGPT response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard data
+      description: Retrieve summary data for admin dashboard (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Admin dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/profile:
+    get:
+      tags:
+        - User Management
+      summary: Get current user profile
+      description: Retrieve profile information for the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - User Management
+      summary: Update user profile
+      description: Update profile information for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/password:
+    put:
+      tags:
+        - User Management
+      summary: Change password
+      description: Change password for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/forgot-password:
+    post:
+      tags:
+        - User Management
+      summary: Request password reset
+      description: Send password reset link to user's phone/email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+      responses:
+        '200':
+          description: Password reset link sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /users/reset-password:
+    post:
+      tags:
+        - User Management
+      summary: Reset password
+      description: Reset password using reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /products/search:
+    get:
+      tags:
+        - Products
+      summary: Search and filter products
+      description: Search products with filters and sorting
+      parameters:
+        - name: search
+          in: query
+          description: Search keyword for product name/description
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          description: Minimum price filter
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: maxPrice
+          in: query
+          description: Maximum price filter
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: sort
+          in: query
+          description: Sort order (price_asc, price_desc, name_asc, name_desc, newest)
+          required: false
+          schema:
+            type: string
+            enum: [price_asc, price_desc, name_asc, name_desc, newest]
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Filtered and sorted products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /products/{id}/reviews:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Product ID
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Reviews
+      summary: Get product reviews
+      description: Retrieve all reviews for a specific product
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of product reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Reviews
+      summary: Add product review
+      description: Add a review for a specific product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '201':
+          description: Review added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    put:
+      tags:
+        - Reviews
+      summary: Update review
+      description: Update a review (only by the review author)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Reviews
+      summary: Delete review
+      description: Delete a review (only by the review author or admin)
+      responses:
+        '204':
+          description: Review deleted successfully
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /wishlist:
+    get:
+      tags:
+        - Wishlist
+      summary: Get user wishlist
+      description: Retrieve wishlist items for the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: User wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /wishlist/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        description: Product ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    delete:
+      tags:
+        - Wishlist
+      summary: Remove from wishlist
+      description: Remove a product from user's wishlist
+      responses:
+        '204':
+          description: Product removed from wishlist
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Check API health status
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get all users
+      description: Retrieve all users with pagination and filtering (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: search
+          in: query
+          description: Search by name, email, or phone
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by user status
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, SUSPENDED]
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    get:
+      tags:
+        - Admin
+      summary: Get user by ID
+      description: Retrieve detailed user information by ID (Admin only)
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Admin
+      summary: Update user
+      description: Update user information (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdate'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    put:
+      tags:
+        - Admin
+      summary: Update user status
+      description: Update user status (ACTIVE, INACTIVE, SUSPENDED) (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserStatusUpdate'
+      responses:
+        '200':
+          description: User status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/reset-password:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+    post:
+      tags:
+        - Admin
+      summary: Reset user password
+      description: Generate a new password for user (Admin only)
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/orders:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - name: page
+        in: query
+        description: Page number for pagination
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: Number of items per page
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    get:
+      tags:
+        - Admin
+      summary: Get user orders
+      description: Retrieve all orders for a specific user (Admin only)
+      responses:
+        '200':
+          description: User orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/wishlist:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - name: page
+        in: query
+        description: Page number for pagination
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: Number of items per page
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    get:
+      tags:
+        - Admin
+      summary: Get user wishlist
+      description: Retrieve all wishlist items for a specific user (Admin only)
+      responses:
+        '200':
+          description: User wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/reviews:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - name: page
+        in: query
+        description: Page number for pagination
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: Number of items per page
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    get:
+      tags:
+        - Admin
+      summary: Get user reviews
+      description: Retrieve all reviews written by a specific user (Admin only)
+      responses:
+        '200':
+          description: User reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{id}/enquiries:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - name: page
+        in: query
+        description: Page number for pagination
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: Number of items per page
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    get:
+      tags:
+        - Admin
+      summary: Get user enquiries
+      description: Retrieve all enquiries submitted by a specific user (Admin only)
+      responses:
+        '200':
+          description: User enquiries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnquiryListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/search:
+    get:
+      tags:
+        - Admin
+      summary: Search users by phone number
+      description: Search for users by exact phone number (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: phone
+          in: query
+          description: Phone number to search for (exactly 10 digits)
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9]{10}$'
+            example: '1234567890'
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/wishlist/all:
+    get:
+      tags:
+        - Admin
+      summary: Get all wishlist items
+      description: Retrieve all wishlist items across all users (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: productId
+          in: query
+          description: Filter by product ID
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: All wishlist items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminWishlistResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/reviews/all:
+    get:
+      tags:
+        - Admin
+      summary: Get all reviews
+      description: Retrieve all reviews across all users (Admin only)
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: productId
+          in: query
+          description: Filter by product ID
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: rating
+          in: query
+          description: Filter by rating (1-5)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: All reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Use JWT token from login in the Authorization header
+
+  parameters:
+    ProductId:
+      name: id
+      in: path
+      required: true
+      description: Unique product identifier
+      schema:
+        type: integer
+        minimum: 1
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      description: Bearer token to authorize requests
+      schema:
+        type: string
+        example: "Bearer <token>"
+
+  headers:
+    X-Request-Id:
+      description: Unique request/trace ID for correlating logs and debugging. Sent in every response.
+      schema:
+        type: string
+        example: "b7e6c8e2-1f2a-4c3b-9d2e-123456789abc"
+
+  responses:
+    BadRequest:
+      description: Invalid input or validation error
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication failed
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Access denied
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    UserSignup:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - password
+        - phone
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          description: User's first name (letters only)
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          description: User's last name (letters only)
+          example: Doe
+        email:
+          type: string
+          format: email
+          description: Valid email address (optional)
+          example: johndoe@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$'
+          description: Password must contain uppercase, lowercase, digit, special char
+          example: StrongP@ssw0rd!
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          description: User's phone number (exactly 10 digits, numbers only)
+          example: '1234567890'
+
+    UserCreatedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: User created successfully
+
+    UserLogin:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          description: User's phone number (exactly 10 digits, numbers only)
+          example: '1234567890'
+        password:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$'
+          description: Password must contain uppercase, lowercase, digit, special char
+          example: StrongP@ssw0rd!
+
+    AuthToken:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        name:
+          type: string
+          example: Wireless Mouse
+        description:
+          type: string
+          example: Ergonomic wireless mouse with adjustable DPI.
+        price:
+          type: number
+          format: double
+          minimum: 0
+          example: 29.99
+        category:
+          type: string
+          example: Electronics
+        warranty:
+          type: integer
+          minimum: 0
+          description: Warranty period in months
+          example: 12
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to product image (null if no image uploaded)
+          example: /products/image/mouse_123.jpg
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductCreate:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - category
+        - warranty
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Wireless Mouse
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          example: Ergonomic wireless mouse with adjustable DPI.
+        price:
+          type: number
+          format: double
+          minimum: 0
+          example: 29.99
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Electronics
+        warranty:
+          type: integer
+          minimum: 0
+          description: Warranty period in months
+          example: 12
+      description: Schema for product creation (used for documentation purposes - actual POST /products uses multipart/form-data)
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Wireless Mouse Pro
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          example: Upgraded ergonomic mouse with Bluetooth.
+        price:
+          type: number
+          format: double
+          minimum: 0
+          example: 39.99
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Electronics
+        warranty:
+          type: integer
+          minimum: 0
+          description: Warranty period in months
+          example: 24
+      description: Schema for product updates (used for documentation purposes - actual PUT /products/{id} uses multipart/form-data)
+
+    ProductListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        totalElements:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    ImageUploadResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Image uploaded successfully
+        filename:
+          type: string
+          example: mouse_123.jpg
+        url:
+          type: string
+          example: /products/image/mouse_123.jpg
+
+    EnquiryCreate:
+      type: object
+      required:
+        - name
+        - phone
+        - details
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: John Doe
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          description: Phone number (exactly 10 digits, numbers only)
+          example: '1234567890'
+        email:
+          type: string
+          format: email
+          description: Email address (optional)
+          example: john@example.com
+        details:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          example: I need information about your products.
+
+    Enquiry:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: John Doe
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        details:
+          type: string
+          example: I need information about your products.
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, CANCELLED]
+          example: PENDING
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EnquiryListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Enquiry'
+        totalElements:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 3
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    ContactCreate:
+      type: object
+      required:
+        - name
+        - phone
+        - message
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Jane Smith
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          description: Phone number (exactly 10 digits, numbers only)
+          example: '1234567890'
+        email:
+          type: string
+          format: email
+          description: Email address (optional)
+          example: jane@example.com
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          example: I want to know more about your services.
+
+    ContactMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Jane Smith
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        email:
+          type: string
+          format: email
+          example: jane@example.com
+        message:
+          type: string
+          example: I want to know more about your services.
+        status:
+          type: string
+          enum: [NEW, READ, REPLIED]
+          example: NEW
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ContactListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactMessage'
+        totalElements:
+          type: integer
+          example: 25
+        totalPages:
+          type: integer
+          example: 2
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    ContactInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        companyName:
+          type: string
+          example: Ray Flux Enterprises
+        email:
+          type: string
+          format: email
+          example: contact@rayflux.in
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: '+911234567890'
+        address:
+          type: string
+          example: 123 Ray Flux Street, City, Country
+        businessHours:
+          type: string
+          example: "09:00 AM – 06:00 PM (Sunday Closed)"
+        website:
+          type: string
+          example: https://rayflux.in
+        updatedAt:
+          type: string
+          format: date-time
+
+    ContactInfoUpdate:
+      type: object
+      required:
+        - companyName
+        - email
+        - phone
+        - address
+      properties:
+        companyName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Ray Flux Enterprises
+        email:
+          type: string
+          format: email
+          example: contact@rayflux.in
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: '+911234567890'
+        address:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: 123 Ray Flux Street, City, Country
+        businessHours:
+          type: string
+          maxLength: 100
+          example: "09:00 AM – 06:00 PM (Sunday Closed)"
+        website:
+          type: string
+          format: uri
+          example: https://rayflux.in
+
+    ChatRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: The prompt/message to send to AI chat service
+          example: "Hello, how are you?"
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          example: Here is the information you requested...
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Electronics
+        description:
+          type: string
+          example: Electronic devices and accessories
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CategoryCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Electronics
+        description:
+          type: string
+          maxLength: 200
+          example: Electronic devices and accessories
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Electronics & Gadgets
+        description:
+          type: string
+          maxLength: 200
+          example: Electronic devices, gadgets and accessories
+
+    CategoryListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        totalElements:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 1
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 123
+        productId:
+          type: integer
+          example: 42
+        productName:
+          type: string
+          example: Wireless Mouse
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        unitPrice:
+          type: number
+          format: double
+          minimum: 0
+          example: 29.99
+        totalAmount:
+          type: number
+          format: double
+          minimum: 0
+          example: 59.98
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED]
+          example: PENDING
+        shippingAddress:
+          type: string
+          example: 123 Main St, City, State 12345
+        trackingNumber:
+          type: string
+          nullable: true
+          description: Shipping tracking number (available when status is SHIPPED or DELIVERED)
+          example: TRK123456789
+        estimatedDelivery:
+          type: string
+          format: date
+          nullable: true
+          description: Estimated delivery date
+          example: "2024-01-15"
+        adminNotes:
+          type: string
+          nullable: true
+          description: Admin notes about the order
+          example: Order confirmed and payment received
+        orderDate:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderCreate:
+      type: object
+      required:
+        - productId
+        - quantity
+        - shippingAddress
+      properties:
+        productId:
+          type: integer
+          minimum: 1
+          example: 42
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        shippingAddress:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: 123 Main St, City, State 12345
+
+    OrderStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED]
+          example: CONFIRMED
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: Reason for status change (required when status is CANCELLED, users can only cancel their own pending orders)
+          example: Changed my mind, want to order different product
+        notes:
+          type: string
+          maxLength: 500
+          description: Admin notes about the status change (optional)
+          example: Order confirmed and payment received
+        trackingNumber:
+          type: string
+          maxLength: 50
+          description: Shipping tracking number (required when status is SHIPPED)
+          example: TRK123456789
+        estimatedDelivery:
+          type: string
+          format: date
+          description: Estimated delivery date (optional)
+          example: "2024-01-15"
+
+    OrderListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        totalElements:
+          type: integer
+          example: 25
+        totalPages:
+          type: integer
+          example: 2
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    Warranty:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        orderId:
+          type: integer
+          example: 1
+        productId:
+          type: integer
+          example: 42
+        productName:
+          type: string
+          example: Wireless Mouse
+        warrantyMonths:
+          type: integer
+          minimum: 0
+          example: 12
+        startDate:
+          type: string
+          format: date-time
+        expiryDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ACTIVE, EXPIRED, CLAIMED]
+          example: ACTIVE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WarrantyListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warranty'
+        totalElements:
+          type: integer
+          example: 15
+        totalPages:
+          type: integer
+          example: 1
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    EnquiryStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, CANCELLED]
+          example: PROCESSING
+
+    AdminDashboard:
+      type: object
+      properties:
+        totalProducts:
+          type: integer
+          example: 150
+        totalOrders:
+          type: integer
+          example: 1250
+        totalEnquiries:
+          type: integer
+          example: 89
+        totalContactMessages:
+          type: integer
+          example: 45
+        recentOrders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        pendingEnquiries:
+          type: integer
+          example: 12
+        activeWarranties:
+          type: integer
+          example: 234
+        revenue:
+          type: number
+          format: double
+          example: 45678.90
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserProfileUpdate:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phone
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+
+    PasswordChange:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$'
+          description: Current password must contain uppercase, lowercase, digit, special char
+          example: StrongP@ssw0rd!
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$'
+          description: New password must contain uppercase, lowercase, digit, special char
+          example: NewStrongP@ssw0rd!
+
+    ForgotPassword:
+      type: object
+      oneOf:
+        - required: [phone]
+        - required: [email]
+      properties:
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+
+    ResetPassword:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$'
+          description: New password must contain uppercase, lowercase, digit, special char
+          example: NewStrongP@ssw0rd!
+
+    ReviewCreate:
+      type: object
+      required:
+        - productId
+        - rating
+        - comment
+      properties:
+        productId:
+          type: integer
+          minimum: 1
+          example: 42
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: Great product! Highly recommend.
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 123
+        productId:
+          type: integer
+          example: 42
+        productName:
+          type: string
+          example: Wireless Mouse
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: Great product! Highly recommend.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReviewListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        totalElements:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 1
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    ReviewUpdate:
+      type: object
+      required:
+        - comment
+      properties:
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: Updated review comment.
+
+    WishlistResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/WishlistItem'
+        totalElements:
+          type: integer
+          example: 5
+        totalPages:
+          type: integer
+          example: 1
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    WishlistAdd:
+      type: object
+      required:
+        - productId
+      properties:
+        productId:
+          type: integer
+          minimum: 1
+          example: 42
+
+    WishlistItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 123
+        productId:
+          type: integer
+          example: 42
+        productName:
+          type: string
+          example: Wireless Mouse
+        createdAt:
+          type: string
+          format: date-time
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+          example: UP
+        message:
+          type: string
+          example: API is healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    UserListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserProfile'
+        totalElements:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+
+    AdminUserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          example: ACTIVE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdminUserUpdate:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phone
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^[a-zA-Z]+$'
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 10
+          pattern: '^[0-9]{10}$'
+          example: '1234567890'
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          example: ACTIVE
+
+    UserStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          example: INACTIVE
+
+    PasswordResetResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Password reset link sent
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    AdminWishlistResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/WishlistItem'
+        totalElements:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 1
+        currentPage:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20

@@ -1,0 +1,33 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+chunk-RPCDYKBN.js?v=03669cec:521 Warning: validateDOMNesting(...): <a> cannot appear as a descendant of <a>.
+    at a
+    at a
+    at https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=03669cec:279:18
+    at nav
+    at div
+    at Sidebar (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/src/components/layout/sidebar.tsx:27:22)
+    at div
+    at Router
+    at Provider (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=03669cec:38:15)
+    at TooltipProvider (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=03669cec:61:5)
+    at QueryClientProvider (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=03669cec:2805:3)
+    at V (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=03669cec:44:25)
+    at J (https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=03669cec:42:18)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=03669cec:521
+error @ chunk-RPCDYKBN.js?v=03669cec:505
+validateDOMNesting @ chunk-RPCDYKBN.js?v=03669cec:8256
+createInstance @ chunk-RPCDYKBN.js?v=03669cec:8328
+completeWork @ chunk-RPCDYKBN.js?v=03669cec:16290
+completeUnitOfWork @ chunk-RPCDYKBN.js?v=03669cec:19224
+performUnitOfWork @ chunk-RPCDYKBN.js?v=03669cec:19206
+workLoopSync @ chunk-RPCDYKBN.js?v=03669cec:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=03669cec:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=03669cec:18678
+workLoop @ chunk-RPCDYKBN.js?v=03669cec:197
+flushWork @ chunk-RPCDYKBN.js?v=03669cec:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=03669cec:384Understand this error
+dd1def44-76ae-4ecc-ad3e-e7e853c18fb5:1 Refused to execute script from 'https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/worker-yaml.js' because its MIME type ('text/html') is not executable.
+(anonymous) @ dd1def44-76ae-4ecc-ad3e-e7e853c18fb5:1Understand this error
+dd1def44-76ae-4ecc-ad3e-e7e853c18fb5:1 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://95d40ba4-f073-4c1d-a065-c21024888ea3-00-226vw7uo37sbv.kirk.replit.dev/worker-yaml.js' failed to load.
+    at dd1def44-76ae-4ecc-ad3e-e7e853c18fb5:1:1

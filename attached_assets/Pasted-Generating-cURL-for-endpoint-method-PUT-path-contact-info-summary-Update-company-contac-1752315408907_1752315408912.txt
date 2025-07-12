@@ -1,0 +1,250 @@
+Generating cURL for endpoint: {method: 'PUT', path: '/contact/info', summary: 'Update company contact information', description: 'Update company contact information (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /contact/info
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ContactInfoUpdate'}
+spec-craft.tsx:963 Generated example: {companyName: 'Ray Flux Enterprises', email: 'contact@rayflux.in', phone: '+911234567890', address: '123 Ray Flux Street, City, Country', businessHours: '09:00 AM – 06:00 PM (Sunday Closed)', …}
+spec-craft.tsx:969 Adding JSON body: {
+  "companyName": "Ray Flux Enterprises",
+  "email": "contact@rayflux.in",
+  "phone": "+911234567890",
+  "address": "123 Ray Flux Street, City, Country",
+  "businessHours": "09:00 AM – 06:00 PM (Sunday Closed)",
+  "website": "https://rayflux.in"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'POST', path: '/chat', summary: 'Get ChatGPT response', description: '', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: POST /chat
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ChatRequest'}
+spec-craft.tsx:963 Generated example: {prompt: 'Hello, how are you?'}
+spec-craft.tsx:969 Adding JSON body: {
+  "prompt": "Hello, how are you?"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/dashboard', summary: 'Get admin dashboard data', description: 'Retrieve summary data for admin dashboard (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/users/profile', summary: 'Get current user profile', description: 'Retrieve profile information for the authenticated user', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'PUT', path: '/users/profile', summary: 'Update user profile', description: 'Update profile information for the authenticated user', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /users/profile
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/UserProfileUpdate'}
+spec-craft.tsx:963 Generated example: {firstName: 'John', lastName: 'Doe', email: 'johndoe@example.com', phone: '1234567890'}
+spec-craft.tsx:969 Adding JSON body: {
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "johndoe@example.com",
+  "phone": "1234567890"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'PUT', path: '/users/password', summary: 'Change password', description: 'Change password for the authenticated user', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /users/password
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/PasswordChange'}
+spec-craft.tsx:963 Generated example: {currentPassword: 'StrongP@ssw0rd!', newPassword: 'NewStrongP@ssw0rd!'}
+spec-craft.tsx:969 Adding JSON body: {
+  "currentPassword": "StrongP@ssw0rd!",
+  "newPassword": "NewStrongP@ssw0rd!"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'POST', path: '/users/forgot-password', summary: 'Request password reset', description: "Send password reset link to user's phone/email", tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: POST /users/forgot-password
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ForgotPassword'}
+spec-craft.tsx:963 Generated example: {phone: '1234567890', email: 'johndoe@example.com'}
+spec-craft.tsx:969 Adding JSON body: {
+  "phone": "1234567890",
+  "email": "johndoe@example.com"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'POST', path: '/users/reset-password', summary: 'Reset password', description: 'Reset password using reset token', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: POST /users/reset-password
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ResetPassword'}
+spec-craft.tsx:963 Generated example: {token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', newPassword: 'NewStrongP@ssw0rd!'}
+spec-craft.tsx:969 Adding JSON body: {
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "newPassword": "NewStrongP@ssw0rd!"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/products/search', summary: 'Search and filter products', description: 'Search products with filters and sorting', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: (7) [{…}, {…}, {…}, {…}, {…}, {…}, {…}]
+spec-craft.tsx:929 Adding query param: search={search}
+spec-craft.tsx:929 Adding query param: category={category}
+spec-craft.tsx:929 Adding query param: minPrice={minPrice}
+spec-craft.tsx:929 Adding query param: maxPrice={maxPrice}
+spec-craft.tsx:929 Adding query param: sort={sort}
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/products/{id}/reviews', summary: 'Get product reviews', description: 'Retrieve all reviews for a specific product', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: (2) [{…}, {…}]
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'POST', path: '/products/{id}/reviews', summary: 'Add product review', description: 'Add a review for a specific product', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: POST /products/{id}/reviews
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ReviewCreate'}
+spec-craft.tsx:963 Generated example: {productId: 42, rating: 4, comment: 'Great product! Highly recommend.'}
+spec-craft.tsx:969 Adding JSON body: {
+  "productId": 42,
+  "rating": 4,
+  "comment": "Great product! Highly recommend."
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'PUT', path: '/reviews/{id}', summary: 'Update review', description: 'Update a review (only by the review author)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /reviews/{id}
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/ReviewUpdate'}
+spec-craft.tsx:963 Generated example: {comment: 'Updated review comment.'}
+spec-craft.tsx:969 Adding JSON body: {
+  "comment": "Updated review comment."
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'DELETE', path: '/reviews/{id}', summary: 'Delete review', description: 'Delete a review (only by the review author or admin)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/wishlist', summary: 'Get user wishlist', description: 'Retrieve wishlist items for the authenticated user', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: (2) [{…}, {…}]
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'DELETE', path: '/wishlist/{productId}', summary: 'Remove from wishlist', description: "Remove a product from user's wishlist", tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/health', summary: 'Health check', description: 'Check API health status', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users', summary: 'Get all users', description: 'Retrieve all users with pagination and filtering (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: (4) [{…}, {…}, {…}, {…}]
+spec-craft.tsx:929 Adding query param: search={search}
+spec-craft.tsx:929 Adding query param: status={status}
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/{id}', summary: 'Get user by ID', description: 'Retrieve detailed user information by ID (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'PUT', path: '/admin/users/{id}', summary: 'Update user', description: 'Update user information (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /admin/users/{id}
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/AdminUserUpdate'}
+spec-craft.tsx:963 Generated example: {firstName: 'John', lastName: 'Doe', email: 'johndoe@example.com', phone: '1234567890', status: 'ACTIVE'}
+spec-craft.tsx:969 Adding JSON body: {
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "johndoe@example.com",
+  "phone": "1234567890",
+  "status": "ACTIVE"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'PUT', path: '/admin/users/{id}/status', summary: 'Update user status', description: 'Update user status (ACTIVE, INACTIVE, SUSPENDED) (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:876 Adding Content-Type header: application/json
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:937 Processing request body for: PUT /admin/users/{id}/status
+spec-craft.tsx:938 Request body content: {application/json: {…}}
+spec-craft.tsx:950 Found content type: application/json
+spec-craft.tsx:957 Direct example found: undefined
+spec-craft.tsx:961 Generating example from schema: {$ref: '#/components/schemas/UserStatusUpdate'}
+spec-craft.tsx:963 Generated example: {status: 'INACTIVE'}
+spec-craft.tsx:969 Adding JSON body: {
+  "status": "INACTIVE"
+}
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'POST', path: '/admin/users/{id}/reset-password', summary: 'Reset user password', description: 'Generate a new password for user (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/{id}/orders', summary: 'Get user orders', description: 'Retrieve all orders for a specific user (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/{id}/wishlist', summary: 'Get user wishlist', description: 'Retrieve all wishlist items for a specific user (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/{id}/reviews', summary: 'Get user reviews', description: 'Retrieve all reviews written by a specific user (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/{id}/enquiries', summary: 'Get user enquiries', description: 'Retrieve all enquiries submitted by a specific user (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: []
+spec-craft.tsx:925 Query parameters found: []
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/users/search', summary: 'Search users by phone number', description: 'Search for users by exact phone number (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: [{…}]
+spec-craft.tsx:929 Adding query param: phone=1234567890
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/wishlist/all', summary: 'Get all wishlist items', description: 'Retrieve all wishlist items across all users (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: (3) [{…}, {…}, {…}]
+spec-craft.tsx:929 Adding query param: productId={productId}
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+spec-craft.tsx:789 Generating cURL for endpoint: {method: 'GET', path: '/admin/reviews/all', summary: 'Get all reviews', description: 'Retrieve all reviews across all users (Admin only)', tags: Array(1), …}
+spec-craft.tsx:865 Header parameters found: [{…}]
+spec-craft.tsx:868 Adding header: Authorization: Bearer <token>
+spec-craft.tsx:925 Query parameters found: (4) [{…}, {…}, {…}, {…}]
+spec-craft.tsx:929 Adding query param: productId={productId}
+spec-craft.tsx:929 Adding query param: rating={rating}
+spec-craft.tsx:929 Adding query param: page={page}
+spec-craft.tsx:929 Adding query param: size=20
+@radix-ui_react-dialog.js?v=03669cec:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=03669cec:340
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=03669cec:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=03669cec:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=03669cec:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=03669cec:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=03669cec:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=03669cec:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=03669cec:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=03669cec:19416
+commitRoot @ chunk-RPCDYKBN.js?v=03669cec:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=03669cec:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=03669cec:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=03669cec:18627Understand this warning

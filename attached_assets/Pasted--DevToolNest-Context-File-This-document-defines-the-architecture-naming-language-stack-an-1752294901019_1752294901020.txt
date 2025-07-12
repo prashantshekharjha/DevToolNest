@@ -1,0 +1,136 @@
+**DevToolNest - Context File**
+
+This document defines the architecture, naming, language stack, and features for each tool/module in the unified **DevToolNest** Web Application.
+
+---
+
+## 🏠 App Overview
+
+* **App Name:** DevToolNest
+* **Frontend Framework:** React with TypeScript
+* **Routing:** React Router DOM
+* **Styling:** Tailwind CSS, shadcn/ui components
+* **Code Architecture:** Modular, each tool in its own route/component folder
+* **Deployment:** Vercel or Netlify (free tier)
+* **State Management:** Context API (Redux optional)
+
+---
+
+## 🧰 Feature Modules and Tool Names
+
+### 1. 🧪 **ReqNest** (`/reqnest`)
+
+* Build, send, and save HTTP API requests
+* Supports: GET, POST, PUT, DELETE, PATCH
+* Features:
+
+  * URL + method selector
+  * Headers editor
+  * Body (raw JSON/form-data)
+  * Response viewer (status, headers, response JSON)
+  * Save requests to collections
+  * Use of environment variables
+
+### 2. 📥 **SwaggerSync** (`/swagger-import`)
+
+* Upload OpenAPI spec (YAML/JSON)
+* Auto-parse paths, methods, params
+* Generate ready-to-use ReqNest requests
+* Group by tags or paths into collections
+
+### 3. ✍️ **SpecCraft** (`/swagger-editor`)
+
+* YAML/JSON editor for OpenAPI specs
+* Monaco Editor integration
+* Live preview using Redoc or Swagger UI
+* OpenAPI validation and syntax error checking
+* Upload/download spec files
+
+### 4. 🔐 **TokenPeek** (`/jwt-decoder`)
+
+* Paste and decode JWTs
+* View decoded header, payload, signature
+* Show expiration info and validity
+* Copy decoded segments
+
+### 5. 🖼️ **ImageSqueeze** (`/image-optimizer`)
+
+* Upload images
+* Compress and resize client-side
+* Preview original vs optimized
+* Download optimized version
+
+### 6. 📄 **CVForge** (`/resume-builder`)
+
+* Dynamic resume form with real-time preview
+* Fields: personal info, experience, education, skills
+* PDF generation using jsPDF or html2pdf
+* Template support (light/dark/classic)
+
+### 7. 🔧 **PrettyJSON** (`/json-formatter`)
+
+* Paste or upload JSON
+* Auto-pretty print and validate
+* Syntax error detection
+* Download or copy output
+
+### 8. 🔁 **DataMorph** (`/csv-json`)
+
+* Convert CSV ↔ JSON
+* Paste/upload files or raw content
+* View input/output side-by-side
+* Download converted result
+
+### 9. 🕒 **TimeFlip** (`/epoch-converter`)
+
+* Convert Unix epoch timestamps ↔ human-readable dates
+* Convert local time to epoch
+* Support for multiple timezones
+
+### 10. 🔮 **MockWizard** (`/api-mock`)
+
+* Paste a JSON schema or sample
+* Generate realistic mock response data (using Faker.js)
+* View and copy/download mock JSON
+* Optional: mock endpoint serving (advanced phase)
+
+### 11. 📊 **ThrottleViz** (`/rate-limiter`)
+
+* Visualize API rate limiting strategies (fixed window, token bucket, etc.)
+* Simulate requests and see blocks in real-time
+* Educational + debugging tool
+
+### 12. 🧭 **FlowTrace** (`/puml-generator`)
+
+* Input: Java method (starting point)
+* Use JavaParser to analyze method call chain
+* Output: PlantUML sequence diagram syntax
+* Optionally render preview using PUML rendering lib
+* Can support controller → service → repo trace with return chain
+
+---
+
+## 🧪 Stack Summary
+
+| Area               | Technology                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| Frontend           | React (TypeScript)                                                                      |
+| Styling            | Tailwind CSS + shadcn/ui                                                                |
+| Routing            | React Router DOM                                                                        |
+| State Mgmt         | Context API (Redux optional)                                                            |
+| Libraries          | jwt-decode, jsPDF, PapaParse, swagger-parser, faker.js, JavaParser (Java for FlowTrace) |
+| Backend (optional) | Node.js or Spring Boot (for advanced/mock services)                                     |
+| Diagram Engine     | PlantUML, Redoc, Swagger UI                                                             |
+
+---
+
+## 🚀 Deployment Plan
+
+* Use Vercel/Netlify for frontend hosting
+* Route each tool under `/tool-name`
+* Store non-sensitive configs in `.env`
+* Version control with GitHub (monorepo preferred)
+
+---
+
+This context file is the source of truth for the **DevToolNest** architecture and feature map.
