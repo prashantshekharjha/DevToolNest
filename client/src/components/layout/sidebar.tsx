@@ -34,7 +34,7 @@ export function Sidebar() {
       {/* Logo/Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 bg-gradient-purple rounded-lg flex items-center justify-center shadow-lg animate-pulse-glow">
+          <div className="sidebar-logo-square">
             <Wrench className="w-10 h-10 text-white" />
           </div>
           {!isCollapsed && (
@@ -48,16 +48,25 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         <Link href="/">
-          <a className={cn("nav-item", isActive("/") && "active", isCollapsed && "justify-center")}> 
+          <a className={cn(
+            "nav-item group",
+            isActive("/") && "active",
+            isCollapsed ? "justify-center" : "flex flex-row items-center gap-x-2"
+          )}
+            style={{ minHeight: isCollapsed ? '2.5rem' : '2.5rem', transition: 'min-height 0.2s' }}
+          >
             <div className={cn(
-              isActive("/") ? "w-14 h-14 rounded-full ring-2 ring-primary shadow-lg -translate-y-1 z-10 bg-yellow-400 flex items-center justify-center transition-all duration-200" : "w-10 h-10 rounded bg-gradient-emerald flex items-center justify-center transition-all duration-200"
+              isActive("/")
+                ? "w-10 h-10 rounded-xl shadow-md -translate-y-0.5 z-10 bg-gradient-blue ring-2 ring-primary border border-border transition-all duration-200"
+                : "w-10 h-10 rounded-xl bg-gradient-emerald flex items-center justify-center transition-all duration-200"
             )}>
-              <Home className={isActive("/") ? "w-10 h-10 text-white" : "w-7 h-7 text-white"} />
+              <Home className={isActive("/") ? "w-8 h-8 text-white" : "w-8 h-8 text-white"} />
             </div>
-            {!isCollapsed && <span>Home</span>}
+            {!isCollapsed && (
+              <span className="font-medium text-base truncate">Home</span>
+            )}
           </a>
         </Link>
-        
         {tools.map((tool, index) => {
           const gradientClasses = [
             'bg-gradient-blue',
@@ -76,13 +85,23 @@ export function Sidebar() {
           const isToolActive = isActive(tool.route);
           return (
             <Link key={tool.id} href={tool.route}>
-              <a className={cn("nav-item", isToolActive && "active", isCollapsed && "justify-center")}> 
+              <a className={cn(
+                "nav-item group",
+                isToolActive && "active",
+                isCollapsed ? "justify-center" : "flex flex-row items-center gap-x-2"
+              )}
+                style={{ minHeight: isCollapsed ? '2.5rem' : '2.5rem', transition: 'min-height 0.2s' }}
+              >
                 <div className={cn(
-                  isToolActive ? `w-14 h-14 rounded-full ring-2 ring-primary shadow-lg -translate-y-1 z-10 bg-yellow-400 flex items-center justify-center transition-all duration-200` : `w-10 h-10 rounded ${gradientClasses[index % gradientClasses.length]} flex items-center justify-center transition-all duration-200`
+                  isToolActive
+                    ? `w-10 h-10 rounded-xl shadow-md -translate-y-0.5 z-10 ${gradientClasses[index % gradientClasses.length]} ring-2 ring-primary border border-border transition-all duration-200`
+                    : `w-10 h-10 rounded-xl ${gradientClasses[index % gradientClasses.length]} flex items-center justify-center transition-all duration-200`
                 )}>
-                  <tool.icon className={isToolActive ? "w-10 h-10 text-white" : "w-7 h-7 text-white"} />
+                  <tool.icon className={"w-8 h-8 text-white"} />
                 </div>
-                {!isCollapsed && <span>{tool.name}</span>}
+                {!isCollapsed && (
+                  <span className="font-medium text-base truncate">{tool.name}</span>
+                )}
               </a>
             </Link>
           );

@@ -614,13 +614,6 @@
     @apply bg-card border border-border rounded-lg p-6 text-center;
   }
   
-  .sidebar-gradient {
-    background: linear-gradient(180deg, 
-      hsl(var(--background)) 0%, 
-      hsl(var(--muted)) 100%
-    );
-  }
-
   /* YAML/JSON Editor with enhanced indentation guides */
   .yaml-editor {
     position: relative;
@@ -754,12 +747,19 @@
     );
   }
 
-  .dark .sidebar-gradient {
-    background: linear-gradient(180deg, 
-      hsl(var(--background)) 0%, 
-      hsl(215, 28%, 12%) 100%
-    );
-  }
+  /*
+// Duplicate/conflicting sidebar-gradient definitions below are commented out for clarity and to prevent conflicts.
+// .dark .sidebar-gradient {
+//   background: linear-gradient(180deg, 
+//     hsl(var(--background)) 0%, 
+//     hsl(215, 28%, 12%) 100%
+//   );
+// }
+//
+// .sidebar-gradient {
+//   background: linear-gradient(180deg, #181a20 0%, #23272f 100%) !important;
+// }
+*/
 }
 
 /* --- Modern Soothing Dark Mode Revamp --- */
@@ -976,3 +976,67 @@
   box-shadow: none !important;
 }
 /* --- End Visually Appealing Selected Tabs in Dark Mode --- */
+
+/* --- Soothing Gradients for Dark Mode --- */
+.dark .bg-gradient-blue {
+  background: linear-gradient(135deg, #283e51 0%, #485563 100%) !important;
+}
+.dark .bg-gradient-purple {
+  background: linear-gradient(135deg, #434343 0%, #4f2e63 100%) !important;
+}
+.dark .bg-gradient-emerald {
+  background: linear-gradient(135deg, #184e4e 0%, #43cea2 100%) !important;
+}
+.dark .bg-gradient-amber {
+  background: linear-gradient(135deg, #665c3c 0%, #cbbd6b 100%) !important;
+}
+.dark .bg-gradient-rose {
+  background: linear-gradient(135deg, #4e2e2e 0%, #b24592 100%) !important;
+}
+.dark .bg-gradient-indigo {
+  background: linear-gradient(135deg, #232526 0%, #414345 100%) !important;
+}
+.dark .bg-gradient-cyan {
+  background: linear-gradient(135deg, #274046 0%, #6096b4 100%) !important;
+}
+.dark .bg-gradient-orange {
+  background: linear-gradient(135deg, #3a2c1a 0%, #d1913c 100%) !important;
+}
+.dark .bg-gradient-teal {
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%) !important;
+}
+
+/* --- Sidebar Icon Improvements --- */
+.sidebar-gradient {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%) !important;
+}
+.dark .sidebar-gradient {
+  background: linear-gradient(180deg, #181a20 0%, #23272f 100%) !important;
+}
+
+.nav-item {
+  margin-bottom: 0.5rem; /* Add vertical spacing between icons */
+}
+
+.nav-item:last-child {
+  margin-bottom: 0;
+}
+
+.nav-item .w-10, .nav-item .w-14 {
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Logo Container Improvements --- */
+.sidebar-logo-square {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #232946 0%, #434343 100%);
+  box-shadow: 0 2px 8px 0 rgba(44, 62, 80, 0.18);
+}
