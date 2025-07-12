@@ -686,7 +686,7 @@ components:
 
   // Extract endpoints from spec
   const extractEndpointsFromSpec = useCallback((specObj: any): ParsedEndpoint[] => {
-    const endpoints: ParsedEndpoint[] = [];
+    let endpoints: ParsedEndpoint[] = [];
     
     if (specObj?.paths) {
       Object.entries(specObj.paths).forEach(([path, methods]: [string, any]) => {
