@@ -1022,8 +1022,10 @@ components:
     const grouped: Record<string, ParsedEndpoint[]> = {};
     endpoints.forEach(endpoint => {
       const tag = endpoint.tags && endpoint.tags.length > 0 ? endpoint.tags[0] : 'Untagged';
-      if (!grouped[tag]) grouped[tag] = [];
-      grouped[tag].push(endpoint);
+      if (!grouped[tag]) {
+        grouped[tag] = [];
+      }
+      grouped[tag] = [...grouped[tag], endpoint];
     });
     // Generate cURL commands grouped by tag
     const commands: string[] = [];
@@ -1054,7 +1056,7 @@ components:
     }
     
     // Start with empty headers array - we'll populate from spec
-    const headers: { key: string; value: string }[] = [];
+    let headers: { key: string; value: string }[] = [];
     
     // Add headers from endpoint parameters (this includes Authorization, etc.)
     if (endpoint.parameters) {
@@ -1080,7 +1082,7 @@ components:
           if (resolvedParam.name.toLowerCase() === 'authorization' && authToken) {
             value = `Bearer ${authToken}`;
           }
-          headers.push({ key: resolvedParam.name, value });
+          headers = [...headers, { key: resolvedParam.name, value }];
         }
       });
     }
@@ -1091,7 +1093,7 @@ components:
       const contentType = contentTypes[0] || 'application/json';
       const existingContentType = headers.find(h => h.key.toLowerCase() === 'content-type');
       if (!existingContentType) {
-        headers.push({ key: 'Content-Type', value: contentType });
+        headers = [...headers, { key: 'Content-Type', value: contentType }];
       }
     }
     
@@ -1103,9 +1105,9 @@ components:
           response.content ? Object.keys(response.content) : []
         );
         const acceptType = responseTypes[0] || 'application/json';
-        headers.push({ key: 'Accept', value: acceptType });
+        headers = [...headers, { key: 'Accept', value: acceptType }];
       } else {
-        headers.push({ key: 'Accept', value: 'application/json' });
+        headers = [...headers, { key: 'Accept', value: 'application/json' }];
       }
     }
     
@@ -1119,7 +1121,7 @@ components:
           if (existingHeader) {
             existingHeader.value = value;
           } else {
-            headers.push({ key, value });
+            headers = [...headers, { key, value }];
           }
         }
       });
@@ -1217,11 +1219,12 @@ components:
       if (!resourceGroups.has(resource)) {
         resourceGroups.set(resource, []);
       }
-      resourceGroups.get(resource)!.push(endpoint);
+      const currentEndpoints = resourceGroups.get(resource) || [];
+      resourceGroups.set(resource, [...currentEndpoints, endpoint]);
     });
     
     // Create collection with folder structure
-    const requests: any[] = [];
+    let requests: any[] = [];
     
     resourceGroups.forEach((endpoints, resource) => {
       // Create folder for this resource
@@ -1240,13 +1243,13 @@ components:
         tests: []
       };
       
-      requests.push(folder);
+      requests = [...requests, folder];
       
       // Add all endpoints for this resource as children of the folder
       endpoints.forEach(endpoint => {
         const request = convertToReqNestFormat(endpoint, selectedServer);
         request.parentId = folderId; // Set parent folder
-        requests.push(request);
+        requests = [...requests, request];
       });
     });
     
@@ -1462,7 +1465,7 @@ components:
         name: importedRequest.url || "Untitled Request",
         parentId: folderId // Set parent folder if provided
       };
-      collection.requests.push(requestToSave);
+      collection.requests = [...collection.requests, requestToSave];
       collection.updatedAt = new Date();
       storage.saveCollection(collection);
       setShowSaveToCollectionDialog(false);
@@ -1502,7 +1505,7 @@ components:
       };
       
       // Add folder to collection
-      collection.requests.push(newFolder);
+      collection.requests = [...collection.requests, newFolder];
       collection.updatedAt = new Date();
       storage.saveCollection(collection);
       
@@ -1514,7 +1517,7 @@ components:
         parentId: newFolder.id
       };
       
-      collection.requests.push(requestToSave);
+      collection.requests = [...collection.requests, requestToSave];
       collection.updatedAt = new Date();
       storage.saveCollection(collection);
       setShowSaveToCollectionDialog(false);
@@ -1532,7 +1535,7 @@ components:
 
   const createCollection = () => {
     if (!newCollectionName.trim()) return;
-    const collections = storage.getCollections();
+    let collections = storage.getCollections();
     const newCollection = {
       id: Date.now().toString(),
       name: newCollectionName,
@@ -1540,7 +1543,7 @@ components:
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    collections.push(newCollection);
+    collections = [...collections, newCollection];
     storage.saveCollection(newCollection);
     setCollections(collections);
     setNewCollectionName("");
