@@ -504,7 +504,7 @@ export default function ReqNest() {
         name: pendingImportRequest.url || "Untitled Request"
       };
       
-      newCollection.requests.push(requestToSave);
+      newCollection.requests = [...(newCollection.requests || []), requestToSave];
       newCollection.updatedAt = new Date();
       storage.saveCollection(newCollection);
       
@@ -536,7 +536,7 @@ export default function ReqNest() {
           parentId: folderId // Set parent folder if provided
         }));
         
-        collection.requests.push(...requestsToSave);
+        collection.requests = [...(collection.requests || []), ...requestsToSave];
         collection.updatedAt = new Date();
         storage.saveCollection(collection);
         setCollections(prev => 
@@ -572,7 +572,7 @@ export default function ReqNest() {
       
       const collection = collections.find(c => c.id === collectionId);
       if (collection) {
-        collection.requests.push(requestToSave);
+        collection.requests = [...(collection.requests || []), requestToSave];
         collection.updatedAt = new Date();
         storage.saveCollection(collection);
         setCollections(prev => 
@@ -622,7 +622,7 @@ export default function ReqNest() {
       };
       
       // Add folder to collection
-      collection.requests.push(newFolder);
+      collection.requests = [...(collection.requests || []), newFolder];
       collection.updatedAt = new Date();
       storage.saveCollection(collection);
       setCollections(prev => 
@@ -638,7 +638,7 @@ export default function ReqNest() {
           parentId: newFolder.id
         }));
         
-        collection.requests.push(...requestsToSave);
+        collection.requests = [...(collection.requests || []), ...requestsToSave];
         collection.updatedAt = new Date();
         storage.saveCollection(collection);
         setCollections(prev => 
