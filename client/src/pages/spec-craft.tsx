@@ -686,13 +686,13 @@ components:
 
   // Extract endpoints from spec
   const extractEndpointsFromSpec = useCallback((specObj: any): ParsedEndpoint[] => {
-    const endpoints: ParsedEndpoint[] = [];
+    let endpoints: ParsedEndpoint[] = [];
     
     if (specObj?.paths) {
       Object.entries(specObj.paths).forEach(([path, methods]: [string, any]) => {
         Object.entries(methods).forEach(([method, details]: [string, any]) => {
           if (typeof details === 'object' && details !== null && method !== 'parameters') {
-            endpoints.push({
+            endpoints = [...endpoints, {
               method: method.toUpperCase(),
               path,
               summary: details.summary || '',
@@ -702,7 +702,7 @@ components:
               requestBody: details.requestBody,
               responses: details.responses || {},
               security: details.security
-            });
+            }];
           }
         });
       });
@@ -853,7 +853,7 @@ components:
     }
     
     // Add headers from parameters (resolve references)
-    const headerParams = [];
+    let headerParams: any[] = [];
     if (endpoint.parameters) {
       endpoint.parameters.forEach(param => {
         let resolvedParam = param;
@@ -871,7 +871,7 @@ components:
         }
         
         if (resolvedParam.in === 'header') {
-          headerParams.push(resolvedParam);
+          headerParams = [...headerParams, resolvedParam];
         }
       });
     }
@@ -913,7 +913,7 @@ components:
     }
     
     // Add query parameters (resolve references)
-    const queryParams = [];
+    let queryParams: any[] = [];
     if (endpoint.parameters) {
       endpoint.parameters.forEach(param => {
         let resolvedParam = param;
@@ -931,7 +931,7 @@ components:
         }
         
         if (resolvedParam.in === 'query') {
-          queryParams.push(resolvedParam);
+          queryParams = [...queryParams, resolvedParam];
         }
       });
     }
@@ -1028,13 +1028,13 @@ components:
       grouped[tag] = [...grouped[tag], endpoint];
     });
     // Generate cURL commands grouped by tag
-    const commands: string[] = [];
+    let commands: string[] = [];
     Object.entries(grouped).forEach(([tag, endpoints]) => {
-      commands.push(`# --- ${tag} ---`);
+      commands = [...commands, `# --- ${tag} ---`];
       endpoints.forEach(endpoint => {
-        commands.push(generateDetailedCurl(endpoint, selectedServer, authToken, customHeaders));
+        commands = [...commands, generateDetailedCurl(endpoint, selectedServer, authToken, customHeaders)];
       });
-      commands.push('');
+      commands = [...commands, ''];
     });
     setBulkCurlCommands(commands);
     setShowBulkCurlDialog(true);
@@ -1984,7 +1984,7 @@ components:
                             if (targetCollection && bulkImportCollection) {
                               // Create a mapping of old folder IDs to new folder IDs
                               const folderIdMapping = new Map();
-                              const requestsToAdd = [];
+                              let requestsToAdd: any[] = [];
                               
                               // First, add folders and create ID mapping
                               bulkImportCollection.requests.forEach(req => {
@@ -1992,10 +1992,10 @@ components:
                                   const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
                                   folderIdMapping.set(req.id, newFolderId);
                                   
-                                  requestsToAdd.push({
+                                  requestsToAdd = [...requestsToAdd, {
                                     ...req,
                                     id: newFolderId
-                                  });
+                                  }];
                                 }
                               });
                               
@@ -2004,11 +2004,11 @@ components:
                                 if (req.method !== 'FOLDER') {
                                   const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
                                   
-                                  requestsToAdd.push({
+                                  requestsToAdd = [...requestsToAdd, {
                                     ...req,
                                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                                     parentId: newParentId
-                                  });
+                                  }];
                                 }
                               });
                               
@@ -2123,7 +2123,7 @@ components:
                     if (isBulkImport) {
                       // For bulk import, create new collection and add all requests with proper folder structure
                       const folderIdMapping = new Map();
-                      const requests = [];
+                      let requests: any[] = [];
                       
                       // First, add folders and create ID mapping
                       bulkImportCollection.requests.forEach(req => {
@@ -2131,10 +2131,10 @@ components:
                           const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
                           folderIdMapping.set(req.id, newFolderId);
                           
-                          requests.push({
+                          requests = [...requests, {
                             ...req,
                             id: newFolderId
-                          });
+                          }];
                         }
                       });
                       
@@ -2143,11 +2143,11 @@ components:
                         if (req.method !== 'FOLDER') {
                           const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
                           
-                          requests.push({
+                          requests = [...requests, {
                             ...req,
                             id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                             parentId: newParentId
-                          });
+                          }];
                         }
                       });
                       
