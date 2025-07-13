@@ -2012,7 +2012,8 @@ components:
                                 }
                               });
                               
-                              targetCollection.requests.push(...requestsToAdd);
+                              // targetCollection.requests.push(...requestsToAdd);
+                              targetCollection.requests = [...(targetCollection.requests || []), ...requestsToAdd];
                               targetCollection.updatedAt = new Date();
                               storage.saveCollection(targetCollection);
                               
