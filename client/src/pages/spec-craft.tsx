@@ -1713,7 +1713,7 @@ components:
               {isValidSpec && parsedSpec ? (
                 <Suspense fallback={<div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading API preview...</div>}>
                   <SwaggerUI
-                    spec={parsedSpec}
+                    spec={parsedSpec ? JSON.parse(JSON.stringify(parsedSpec)) : undefined}
                     deepLinking={true}
                     displayOperationId={true}
                     displayRequestDuration={true}
