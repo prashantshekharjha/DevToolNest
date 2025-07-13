@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +11,9 @@ import { toast } from '@/hooks/use-toast';
 import { Copy, ExternalLink, Download, Code, Eye, Play, FileText, Zap, Maximize, Minimize, Folder, FolderPlus } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { storage } from '@/lib/storage';
-// import SwaggerUI from 'swagger-ui-react';
-// import 'swagger-ui-react/swagger-ui.css';
+// Use React.lazy for SwaggerUI
+const SwaggerUI = lazy(() => import('swagger-ui-react'));
+import 'swagger-ui-react/swagger-ui.css';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
@@ -1710,10 +1711,14 @@ components:
             </div>
             <div className="flex-1 overflow-auto min-h-0">
               {isValidSpec && parsedSpec ? (
-                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                  <p>SwaggerUI temporarily disabled for build compatibility</p>
-                  <p className="text-sm mt-1">API specification is valid and ready for use</p>
-                </div>
+                <Suspense fallback={<div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading API preview...</div>}>
+                  <SwaggerUI
+                    spec={parsedSpec}
+                    deepLinking={true}
+                    displayOperationId={true}
+                    displayRequestDuration={true}
+                  />
+                </Suspense>
               ) : (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   {parseError ? (
