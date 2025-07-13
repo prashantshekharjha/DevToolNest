@@ -33,40 +33,40 @@ export function BulkEditDialog({ isOpen, onClose, type, initialText, onApply }: 
     const lines = text.split('\n').filter(line => line.trim());
     
     if (type === 'headers' || type === 'params') {
-      const items: Header[] = [];
+      let items: Header[] = [];
       lines.forEach(line => {
         if (type === 'headers') {
           const colonIndex = line.indexOf(':');
           if (colonIndex > 0) {
             const key = line.substring(0, colonIndex).trim();
             const value = line.substring(colonIndex + 1).trim();
-            items.push({ key, value });
+            items = [...items, { key, value }];
           }
         } else if (type === 'params') {
           const equalIndex = line.indexOf('=');
           if (equalIndex > 0) {
             const key = line.substring(0, equalIndex).trim();
             const value = line.substring(equalIndex + 1).trim();
-            items.push({ key, value });
+            items = [...items, { key, value }];
           }
         }
       });
       onApply(items);
     } else if (type === 'tests') {
-      const tests: TestAssertion[] = [];
+      let tests: TestAssertion[] = [];
       lines.forEach((line, index) => {
         const parts = line.split(' ');
         if (parts.length >= 3) {
           const type = parts[0] as TestAssertion['type'];
           const operator = parts[1] as TestAssertion['operator'];
           const value = parts.slice(2).join(' ');
-          tests.push({
+          tests = [...tests, {
             id: Date.now().toString() + index,
             type,
             operator,
             value,
             enabled: true
-          });
+          }];
         }
       });
       onApply(tests);

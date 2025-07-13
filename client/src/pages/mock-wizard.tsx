@@ -41,11 +41,11 @@ export default function MockWizard() {
   const generateMockData = () => {
     try {
       const parsedSchema = JSON.parse(schema);
-      const mockData = [];
+      let mockData: any[] = [];
 
       for (let i = 0; i < recordCount; i++) {
         const record = generateFromSchema(parsedSchema, i + 1);
-        mockData.push(record);
+        mockData = [...mockData, record];
       }
 
       const formatted = JSON.stringify(mockData, null, 2);

@@ -665,7 +665,7 @@ export default function ReqNest() {
           parentId: newFolder.id
         };
         
-        collection.requests.push(requestToSave);
+        collection.requests = [...(collection.requests || []), requestToSave];
         collection.updatedAt = new Date();
         storage.saveCollection(collection);
         setCollections(prev => 
@@ -695,7 +695,7 @@ export default function ReqNest() {
     
     const collection = collections.find(c => c.id === collectionId);
     if (collection) {
-      collection.requests.push(requestToSave);
+      collection.requests = [...(collection.requests || []), requestToSave];
       collection.updatedAt = new Date();
       storage.saveCollection(collection);
       setCollections(prev => 
@@ -902,9 +902,9 @@ export default function ReqNest() {
   const parseCurlCommand = (curl: string): Partial<Request> => {
     let method = 'GET';
     let url = '';
-    const headers: Header[] = [];
+    let headers: Header[] = [];
     let body = '';
-    const params: Header[] = [];
+    let params: Header[] = [];
     
     // Normalize the curl command - handle multi-line commands and line continuations
     const normalizedCurl = curl
@@ -950,7 +950,7 @@ export default function ReqNest() {
           if (colonIndex > 0) {
             const key = headerValue.substring(0, colonIndex).trim();
             const value = headerValue.substring(colonIndex + 1).trim();
-            headers.push({ key, value });
+            headers = [...headers, { key, value }];
           }
         }
       }
@@ -985,7 +985,7 @@ export default function ReqNest() {
       
       const urlParams = new URLSearchParams(queryString);
       urlParams.forEach((value, key) => {
-        params.push({ key, value });
+        params = [...params, { key, value }];
       });
     }
     
@@ -1002,7 +1002,7 @@ export default function ReqNest() {
 
   // Helper function to split cURL command respecting quotes
   const splitCurlCommand = (command: string): string[] => {
-    const parts: string[] = [];
+    let parts: string[] = [];
     let current = '';
     let inQuotes = false;
     let quoteChar = '';
@@ -1037,7 +1037,7 @@ export default function ReqNest() {
       
       if (char === ' ' && !inQuotes) {
         if (current.trim()) {
-          parts.push(current.trim());
+          parts = [...parts, current.trim()];
         }
         current = '';
         continue;
@@ -1047,7 +1047,7 @@ export default function ReqNest() {
     }
     
     if (current.trim()) {
-      parts.push(current.trim());
+      parts = [...parts, current.trim()];
     }
     
     return parts;
@@ -1092,17 +1092,17 @@ export default function ReqNest() {
     curl += ` "${request.url}"`;
     
     // Add headers
-    const allHeaders = [...request.headers];
+    let allHeaders = [...request.headers];
     
     // Add auth headers
     if (request.auth.type === 'bearer' && request.auth.token) {
-      allHeaders.push({ key: 'Authorization', value: `Bearer ${request.auth.token}` });
+      allHeaders = [...allHeaders, { key: 'Authorization', value: `Bearer ${request.auth.token}` }];
     } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
       const encoded = btoa(`${request.auth.username}:${request.auth.password}`);
-      allHeaders.push({ key: 'Authorization', value: `Basic ${encoded}` });
+      allHeaders = [...allHeaders, { key: 'Authorization', value: `Basic ${encoded}` }];
     } else if (request.auth.type === 'api-key' && request.auth.keyName && request.auth.keyValue) {
       if (request.auth.keyLocation === 'header') {
-        allHeaders.push({ key: request.auth.keyName, value: request.auth.keyValue });
+        allHeaders = [...allHeaders, { key: request.auth.keyName, value: request.auth.keyValue }];
       }
     }
     
