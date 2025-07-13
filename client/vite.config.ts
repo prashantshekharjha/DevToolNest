@@ -18,8 +18,7 @@ export default defineConfig({
       output: {
         manualChunks: undefined,
         inlineDynamicImports: true
-      },
-      external: ['swagger-ui-react']
+      }
     },
   },
   optimizeDeps: {
