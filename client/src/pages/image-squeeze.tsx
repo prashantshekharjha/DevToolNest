@@ -30,12 +30,12 @@ export default function ImageSqueeze() {
   const [processing, setProcessing] = useState(false);
 
   const handleFileUpload = useCallback((files: FileList) => {
-    let newImages: ImageFile[] = [];
+    const newImages: ImageFile[] = [];
     
     Array.from(files).forEach((file) => {
       if (file.type.startsWith('image/')) {
         const preview = URL.createObjectURL(file);
-        newImages = [...newImages, { file, preview }];
+        newImages.push({ file, preview });
       }
     });
 

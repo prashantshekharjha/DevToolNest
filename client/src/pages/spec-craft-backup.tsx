@@ -613,20 +613,20 @@ components:
       });
     }
     
-    let headers = [
+    const headers = [
       { key: 'Content-Type', value: 'application/json' },
       { key: 'Accept', value: 'application/json' }
     ];
     
     if (authToken) {
-      headers = [...headers, { key: 'Authorization', value: `Bearer ${authToken}` }];
+      headers.push({ key: 'Authorization', value: `Bearer ${authToken}` });
     }
     
     if (customHeaders) {
       customHeaders.split('\n').forEach(header => {
         const [key, value] = header.split(':').map(h => h.trim());
         if (key && value) {
-          headers = [...headers, { key, value }];
+          headers.push({ key, value });
         }
       });
     }
@@ -782,13 +782,13 @@ components:
   }, [selectedEndpoint]);
 
   const extractEndpointsFromSpec = useCallback((specObj: any): ParsedEndpoint[] => {
-    let endpoints: ParsedEndpoint[] = [];
+    const endpoints: ParsedEndpoint[] = [];
     
     if (specObj?.paths) {
       Object.entries(specObj.paths).forEach(([path, methods]: [string, any]) => {
         Object.entries(methods).forEach(([method, details]: [string, any]) => {
           if (typeof details === 'object' && details !== null && method !== 'parameters') {
-            endpoints = [...endpoints, {
+            endpoints.push({
               method: method.toUpperCase(),
               path,
               summary: details.summary || '',
@@ -797,7 +797,7 @@ components:
               parameters: details.parameters || [],
               requestBody: details.requestBody,
               responses: details.responses || {}
-            }];
+            });
           }
         });
       });

@@ -64,13 +64,13 @@ class LocalStorage {
   }
 
   saveCollection(collection: Collection): void {
-    let collections = this.getCollections();
+    const collections = this.getCollections();
     const existingIndex = collections.findIndex(c => c.id === collection.id);
     
     if (existingIndex >= 0) {
       collections[existingIndex] = { ...collection, updatedAt: new Date() };
     } else {
-      collections = [...collections, collection];
+      collections.push(collection);
     }
     
     this.set('collections', collections);
