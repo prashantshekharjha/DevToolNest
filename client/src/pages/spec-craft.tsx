@@ -66,8 +66,7 @@ function SwaggerCDNPreview({ spec }) {
           dom_id: '#swagger-ui',
           deepLinking: true,
           displayOperationId: true,
-          displayRequestDuration: true,
-          layout: 'StandaloneLayout',
+          displayRequestDuration: true
         });
       }
     };
