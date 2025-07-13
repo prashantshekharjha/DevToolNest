@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,6 @@ import { toast } from '@/hooks/use-toast';
 import { Copy, ExternalLink, Download, Code, Eye, Play, FileText, Zap, Maximize, Minimize, Folder, FolderPlus } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { storage } from '@/lib/storage';
-// Use React.lazy for SwaggerUI
-const SwaggerUI = lazy(() => import('swagger-ui-react'));
-import 'swagger-ui-react/swagger-ui.css';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
@@ -40,6 +37,49 @@ interface ParsedEndpoint {
   requestBody?: any;
   responses: any;
   security?: any;
+}
+
+// Remove swagger-ui-react imports and usage
+// Add CDN-based Swagger UI preview component
+function SwaggerCDNPreview({ spec }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!spec) return;
+    if (ref.current) ref.current.innerHTML = '';
+    // Add Swagger UI CSS from CDN
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/swagger-ui-dist/swagger-ui.css';
+    document.head.appendChild(link);
+    // Inject custom CSS to hide Swagger UI topbar
+    const style = document.createElement('style');
+    style.innerHTML = `.swagger-ui .topbar { display: none !important; }`;
+    document.head.appendChild(style);
+    // Load Swagger UI from CDN
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js';
+    script.onload = () => {
+      if (window.SwaggerUIBundle) {
+        window.SwaggerUIBundle({
+          spec,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          displayOperationId: true,
+          displayRequestDuration: true,
+          layout: 'StandaloneLayout',
+        });
+      }
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+      document.head.removeChild(style);
+      document.head.removeChild(link);
+    };
+  }, [spec]);
+
+  return <div id="swagger-ui" ref={ref} style={{ width: '100%', height: '80vh', background: 'white' }} />;
 }
 
 export default function SpecCraft() {
@@ -1711,14 +1751,7 @@ components:
             </div>
             <div className="flex-1 overflow-auto min-h-0">
               {isValidSpec && parsedSpec ? (
-                <Suspense fallback={<div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading API preview...</div>}>
-                  <SwaggerUI
-                    spec={parsedSpec ? JSON.parse(JSON.stringify(parsedSpec)) : undefined}
-                    deepLinking={true}
-                    displayOperationId={true}
-                    displayRequestDuration={true}
-                  />
-                </Suspense>
+                <SwaggerCDNPreview spec={parsedSpec} />
               ) : (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   {parseError ? (
