@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { queryClient } from "./lib/queryClient";
@@ -29,23 +29,25 @@ function Router() {
     <div className="flex h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/reqnest" component={ReqNest} />
+        <WouterRouter base="/DevToolNest">
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/reqnest" component={ReqNest} />
 
-          <Route path="/spec-craft" component={SpecCraft} />
-          <Route path="/token-peek" component={TokenPeek} />
+            <Route path="/spec-craft" component={SpecCraft} />
+            <Route path="/token-peek" component={TokenPeek} />
 
-          <Route path="/pretty-json" component={PrettyJSON} />
-          <Route path="/data-morph" component={DataMorph} />
-          <Route path="/time-flip" component={TimeFlip} />
-          <Route path="/mock-wizard" component={MockWizard} />
-          <Route path="/throttle-viz" component={ThrottleViz} />
-          <Route path="/flow-trace" component={FlowTrace} />
-          <Route path="/image-squeeze" component={ImageSqueeze} />
-          <Route path="/cv-forge" component={CVForge} />
-          <Route component={NotFound} />
-        </Switch>
+            <Route path="/pretty-json" component={PrettyJSON} />
+            <Route path="/data-morph" component={DataMorph} />
+            <Route path="/time-flip" component={TimeFlip} />
+            <Route path="/mock-wizard" component={MockWizard} />
+            <Route path="/throttle-viz" component={ThrottleViz} />
+            <Route path="/flow-trace" component={FlowTrace} />
+            <Route path="/image-squeeze" component={ImageSqueeze} />
+            <Route path="/cv-forge" component={CVForge} />
+            <Route component={NotFound} />
+          </Switch>
+        </WouterRouter>
       </div>
     </div>
   );
