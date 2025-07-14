@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Label } from "@/components/ui/label";
 import { Copy, Download, Save, Plus, Trash2, Play, Folder, FolderPlus, Maximize2, Minimize2, Upload, Code, Settings, Eye, EyeOff, Terminal, CheckCircle, XCircle, Clock, Database, Zap, FlaskConical, History, Globe, Wand2, X, Menu, Home, Archive, Users, FileText as FileTextIcon, BarChart3, Cog, Sparkles, Pencil } from "lucide-react";
@@ -149,7 +149,8 @@ export default function ReqNest() {
   const [pendingImportRequest, setPendingImportRequest] = useState<Request | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
   const [newFolderName, setNewFolderName] = useState("");
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderForCollectionId, setNewFolderForCollectionId] = useState<string | null>(null);
+  const [showNewCollectionDialogFor, setShowNewCollectionDialogFor] = useState<string | null>(null);
   
   // Proxy settings
   const [proxyEnabled, setProxyEnabled] = useState(false);
@@ -213,6 +214,16 @@ export default function ReqNest() {
   const [bulkImportRequests, setBulkImportRequests] = useState<Request[] | null>(null);
   const [pendingSaveCollectionId, setPendingSaveCollectionId] = useState<string | null>(null);
   const [pendingSaveFolderId, setPendingSaveFolderId] = useState<string | null>(null);
+
+  // 1. Add abort controller state
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  const [showNewEnvInput, setShowNewEnvInput] = useState(false);
+
+  // Add state for Add to Env dialog
+  const [showAddToEnvDialog, setShowAddToEnvDialog] = useState(false);
+  const [addToEnvKey, setAddToEnvKey] = useState("");
+  const [addToEnvValue, setAddToEnvValue] = useState("");
 
   useEffect(() => {
     const collections = storage.getCollections();
@@ -550,7 +561,7 @@ export default function ReqNest() {
         setSelectedCollection(undefined);
         setSelectedFolder(undefined);
         setNewFolderName("");
-        setShowNewFolderInput(false);
+        setNewFolderForCollectionId(null);
         
         const folderName = folderId ? collection.requests.find(r => r.id === folderId)?.name : '';
         const message = folderId ? 
@@ -564,13 +575,13 @@ export default function ReqNest() {
       }
     } else {
       // Handle single request import
+      const newId = Date.now().toString();
       const requestToSave: Request = {
         ...(pendingImportRequest || request),
-        id: Date.now().toString(),
+        id: newId,
         name: (pendingImportRequest || request).url || "Untitled Request",
         parentId: folderId // Set parent folder if provided
       };
-      
       const collection = collections.find(c => c.id === collectionId);
       if (collection) {
         collection.requests = [...(collection.requests || []), requestToSave];
@@ -579,13 +590,15 @@ export default function ReqNest() {
         setCollections(prev => 
           prev.map(c => c.id === collectionId ? collection : c)
         );
-        setRequest(normalizeRequest(requestToSave)); // <-- Update UI with new request
+        setRequest(normalizeRequest(requestToSave)); // <-- Update UI with new request (id, parentId)
+        setSelectedCollection(collectionId);
+        setSelectedFolder(folderId);
         setShowImportFromSpecDialog(false);
         setPendingImportRequest(null);
         setSelectedCollection(undefined);
         setSelectedFolder(undefined);
         setNewFolderName("");
-        setShowNewFolderInput(false);
+        setNewFolderForCollectionId(null);
         
         const folderName = folderId ? collection.requests.find(r => r.id === folderId)?.name : '';
         const message = folderId ? 
@@ -651,7 +664,7 @@ export default function ReqNest() {
         setPendingSaveFolderId(null);
         setSelectedFolder(undefined);
         setNewFolderName("");
-        setShowNewFolderInput(false);
+        setNewFolderForCollectionId(null);
         
         toast({
           title: "Requests saved",
@@ -677,7 +690,7 @@ export default function ReqNest() {
         setPendingImportRequest(null);
         setSelectedFolder(undefined);
         setNewFolderName("");
-        setShowNewFolderInput(false);
+        setNewFolderForCollectionId(null);
         
         toast({
           title: "Request saved",
@@ -687,26 +700,35 @@ export default function ReqNest() {
     }
   };
 
+  // 2. Refactor saveCurrentRequestToCollection to update by id
   const saveCurrentRequestToCollection = (collectionId: string, requestName?: string) => {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+    let updated = false;
+    let reqId = request.id || Date.now().toString();
     const requestToSave: Request = {
       ...request,
-      id: Date.now().toString(),
+      id: reqId,
       name: requestName || request.url || "Untitled Request"
     };
-    
-    const collection = collections.find(c => c.id === collectionId);
-    if (collection) {
-      collection.requests = [...(collection.requests || []), requestToSave];
-      collection.updatedAt = new Date();
-      storage.saveCollection(collection);
-      setCollections(prev => 
-        prev.map(c => c.id === collectionId ? collection : c)
-      );
-      toast({
-        title: "Request saved",
-        description: `Request saved to "${collection.name}"`
-      });
+    const updatedRequests = (collection.requests || []).map(r => {
+      if (r.id === reqId) {
+        updated = true;
+        return { ...requestToSave };
+      }
+      return r;
+    });
+    if (!updated) {
+      updatedRequests.push(requestToSave);
     }
+    collection.requests = updatedRequests;
+    collection.updatedAt = new Date();
+    storage.saveCollection(collection);
+    setCollections(prev => prev.map(c => c.id === collectionId ? collection : c));
+    toast({
+      title: updated ? "Request updated" : "Request saved",
+      description: `Request ${updated ? 'updated' : 'saved'} to "${collection.name}"`
+    });
   };
 
   const updateRequestName = (collectionId: string, requestId: string, newName: string) => {
@@ -780,6 +802,7 @@ export default function ReqNest() {
     if (savedRequest) {
       const normalizedRequest = normalizeRequest(savedRequest);
       setRequest(normalizedRequest);
+      setResponse(null); // Clear response when switching requests
       toast({
         title: "Request loaded",
         description: "Request loaded from collection"
@@ -1358,6 +1381,19 @@ export default function ReqNest() {
     }
   };
 
+  // 3. In the Send/Cancel button area:
+  // Replace the Button for Send with:
+  // {loading ? (
+  //   <Button onClick={handleCancelRequest} className="h-10 px-6 w-full sm:w-auto bg-red-500 text-white font-bold shadow-lg hover:bg-red-600 focus:ring-2 focus:ring-red-300 transition-all border-none rounded-full">
+  //     <XCircle className="w-4 h-4 mr-2" />
+  //     Cancel
+  //   </Button>
+  // ) : (
+  //   <Button onClick={sendRequest} disabled={loading || !request.url.trim()} className="h-10 px-6 w-full sm:w-auto bg-gradient-to-r from-orange-400 to-yellow-300 text-white font-bold shadow-lg hover:from-orange-500 hover:to-yellow-400 focus:ring-2 focus:ring-orange-300 transition-all border-none rounded-full">
+  //     <Play className="w-4 h-4 mr-2" />
+  //     Send
+  //   </Button>
+  // )}
   const sendRequest = async () => {
     if (!request.url) {
       toast({
@@ -1369,6 +1405,8 @@ export default function ReqNest() {
     }
 
     setLoading(true);
+    const controller = new AbortController();
+    setAbortController(controller);
     const startTime = Date.now();
 
     try {
@@ -1424,6 +1462,7 @@ export default function ReqNest() {
       const fetchOptions: RequestInit = {
         method: request.method,
         headers,
+        signal: controller.signal,
       };
 
       if (request.method !== "GET" && request.body) {
@@ -1490,14 +1529,25 @@ export default function ReqNest() {
 
       setResponse(failedResponse);
       saveRequestToHistory(request, failedResponse);
-
-      toast({
-        title: "Request failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      });
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast({ title: 'Request cancelled', description: 'The request was cancelled.' });
+      } else {
+        toast({
+          title: "Request failed",
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  // Cancel handler
+  const handleCancelRequest = () => {
+    if (abortController) {
+      abortController.abort();
     }
   };
 
@@ -1794,13 +1844,84 @@ export default function ReqNest() {
           toast({ title: 'Requests saved', description: `Saved ${bulkImportRequests.length} requests to ${collection.name}${pendingSaveFolderId ? ' (folder)' : ''}` });
         }
       } else {
-        // Single save
-        saveCurrentRequestToCollection(pendingSaveCollectionId, request.name || request.url);
-        setShowSaveToCollectionDialog(false);
-        setPendingSaveCollectionId(null);
-        setPendingSaveFolderId(null);
+        // Single save (Save As): always create a new request with new id and selected parentId
+        const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        const requestToSave: Request = {
+          ...request,
+          id: newId,
+          parentId: pendingSaveFolderId || undefined,
+          name: request.name || request.url || "Untitled Request"
+        };
+        const collection = collections.find(c => c.id === pendingSaveCollectionId);
+        if (collection) {
+          collection.requests = [...(collection.requests || []), requestToSave];
+          collection.updatedAt = new Date();
+          storage.saveCollection(collection);
+          setCollections(prev => prev.map(c => c.id === collection.id ? collection : c));
+          setRequest(normalizeRequest(requestToSave)); // Update UI with new request (id, parentId)
+          setSelectedCollection(pendingSaveCollectionId);
+          setSelectedFolder(pendingSaveFolderId || undefined);
+          setShowSaveToCollectionDialog(false);
+          setPendingSaveCollectionId(null);
+          setPendingSaveFolderId(null);
+          toast({ title: 'Request saved', description: `Request saved to ${collection.name}${pendingSaveFolderId ? ' (folder)' : ''}` });
+        }
       }
     }
+  };
+
+  // Add Save As button handler
+  const handleSaveAs = () => {
+    setPendingImportRequest(request); // Pre-fill with current request
+    setShowImportFromSpecDialog(true); // Open the advanced dialog
+  };
+
+  // Refactor Save button handler
+  const handleSmartSave = () => {
+    // If request has id and exists in a collection, update in place
+    let found = false;
+    let foundCollectionId = selectedCollection;
+    let foundParentId = request.parentId;
+    for (const col of collections) {
+      const req = col.requests.find(r => r.id === request.id);
+      if (req) {
+        found = true;
+        foundCollectionId = col.id;
+        foundParentId = req.parentId;
+        break;
+      }
+    }
+    if (found && foundCollectionId) {
+      // Update in place
+      saveCurrentRequestToCollection(foundCollectionId, request.name);
+    } else {
+      // Save to default collection/folder
+      const defaultCollection = collections[0];
+      if (defaultCollection) {
+        const folderId = defaultCollection.requests.find(r => r.method === 'FOLDER')?.id;
+        setRequest(prev => ({ ...prev, parentId: folderId }));
+        saveCurrentRequestToCollection(defaultCollection.id, request.name);
+      } else {
+        toast({ title: 'No collection found', description: 'Please create a collection first.' });
+      }
+    }
+  };
+
+  // Add handler to save to env
+  const handleAddToEnv = () => {
+    if (!activeEnvironment) return;
+    setEnvironments(prev => prev.map(env =>
+      env.id === activeEnvironment
+        ? { ...env, variables: { ...env.variables, [addToEnvKey]: addToEnvValue } }
+        : env
+    ));
+    storage.set('reqnest-environments', environments.map(env =>
+      env.id === activeEnvironment
+        ? { ...env, variables: { ...env.variables, [addToEnvKey]: addToEnvValue } }
+        : env
+    ));
+    setShowAddToEnvDialog(false);
+    toast({ title: 'Added to environment', description: `Saved as "${addToEnvKey}"` });
   };
 
   return (
@@ -1867,7 +1988,7 @@ export default function ReqNest() {
               ${sidebarHovered ? 'w-80' : 'w-16'} 
               ${isMobile ? 'fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out' : 'relative'} 
               ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-              border-r bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-hidden transition-all duration-300
+              border-r bg-white border-[#e5e7eb] overflow-hidden transition-all duration-300
             `}
             onMouseEnter={() => setSidebarHovered(true)}
             onMouseLeave={() => setSidebarHovered(false)}
@@ -1935,9 +2056,19 @@ export default function ReqNest() {
                 {sidebarHovered ? (
                   <div className="flex-1 flex flex-col min-h-0">
                     {/* Collections Header with Icon, now bold */}
-                    <div className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b bg-background sticky top-0 z-10">
-                      <Database className="w-4 h-4 text-muted-foreground" />
-                      Collections
+                    <div className="flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b bg-white">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-muted-foreground" />
+                        Collections
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowNewCollectionDialog(true)}
+                        className="h-6 w-6 p-0 hover:bg-gray-100"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
                     </div>
                     <CollectionSidebar
                       collections={collections.map(collection => {
@@ -2106,7 +2237,7 @@ export default function ReqNest() {
             )}
             
             {/* URL Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-white border-b">
               <Select value={request.method} onValueChange={(value) => setRequest(prev => ({ ...prev, method: value }))}>
                 <SelectTrigger className={`w-full sm:w-[100px] h-10 font-semibold ${
                   request.method === 'GET' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700' :
@@ -2151,6 +2282,12 @@ export default function ReqNest() {
                   </>
                 )}
               </Button>
+              {loading && (
+                <Button onClick={handleCancelRequest} className="h-10 px-6 w-full sm:w-auto bg-red-500 text-white font-bold shadow-lg hover:bg-red-600 focus:ring-2 focus:ring-red-300 transition-all border-none rounded-full">
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+              )}
             </div>
             
             {/* Split Pane Layout - Horizontal */}
@@ -2161,8 +2298,8 @@ export default function ReqNest() {
                   <div className="h-full p-2 sm:p-4 overflow-y-auto">
                     <div className="space-y-4">
                       {/* Request Configuration */}
-                      <div className="bg-gradient-to-br from-peach-50 via-orange-50 to-yellow-50 dark:from-orange-900/10 dark:via-yellow-900/10 dark:to-peach-900/10 rounded-2xl border border-orange-200 dark:border-orange-700 shadow-md">
-                        <div className="border-b border-orange-200 dark:border-orange-700 p-4 rounded-t-2xl bg-gradient-to-r from-orange-100 via-yellow-100 to-peach-100 dark:from-orange-900/20 dark:via-yellow-900/20 dark:to-peach-900/20">
+                      <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none p-6">
+                        <div className="border-b border-[#e5e7eb] p-4 rounded-t-2xl bg-gradient-to-r from-orange-100 via-yellow-100 to-peach-100">
                           <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-purple-900 dark:text-purple-200 tracking-wide">Request</h3>
                             <div className="flex items-center gap-2">
@@ -2179,12 +2316,22 @@ export default function ReqNest() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setShowSaveToCollectionDialog(true)}
+                                onClick={handleSmartSave}
                                 className="h-8 px-3"
                                 title="Save"
                               >
                                 <Save className="w-4 h-4 mr-2" />
                                 <span className="hidden lg:inline">Save</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSaveAs}
+                                className="h-8 px-3"
+                                title="Save As"
+                              >
+                                <FolderPlus className="w-4 h-4 mr-2" />
+                                <span className="hidden lg:inline">Save As</span>
                               </Button>
                               <Button
                                 variant="ghost"
@@ -2201,16 +2348,15 @@ export default function ReqNest() {
                         </div>
                         
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                          <TabsList className="flex w-full gap-2 bg-orange-50 dark:bg-orange-900/10 rounded-full p-1 shadow-sm">
-                            <TabsTrigger value="params" className="rounded-full px-5 py-2 font-semibold text-purple-900 dark:text-purple-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-200 data-[state=active]:to-yellow-100 data-[state=active]:shadow-md data-[state=active]:text-purple-900 dark:data-[state=active]:text-[#23272f] transition-all">Parameters</TabsTrigger>
-                            <TabsTrigger value="headers" className="rounded-full px-5 py-2 font-semibold text-purple-900 dark:text-purple-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-200 data-[state=active]:to-yellow-100 data-[state=active]:shadow-md data-[state=active]:text-purple-900 dark:data-[state=active]:text-[#23272f] transition-all">Headers</TabsTrigger>
-                            <TabsTrigger value="body" className="rounded-full px-5 py-2 font-semibold text-purple-900 dark:text-purple-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-200 data-[state=active]:to-yellow-100 data-[state=active]:shadow-md data-[state=active]:text-purple-900 dark:data-[state=active]:text-[#23272f] transition-all">Body</TabsTrigger>
-                            <TabsTrigger value="auth" className="rounded-full px-5 py-2 font-semibold text-purple-900 dark:text-purple-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-200 data-[state=active]:to-yellow-100 data-[state=active]:shadow-md data-[state=active]:text-purple-900 dark:data-[state=active]:text-[#23272f] transition-all">Auth</TabsTrigger>
-                            <TabsTrigger value="scripts" className="rounded-full px-5 py-2 font-semibold text-purple-900 dark:text-purple-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-200 data-[state=active]:to-yellow-100 data-[state=active]:shadow-md data-[state=active]:text-purple-900 dark:data-[state=active]:text-[#23272f] transition-all flex items-center"><Code className="inline w-4 h-4 mr-1" /> Scripts</TabsTrigger>
+                          <TabsList className="mb-4 flex gap-2 w-fit mx-auto border-b border-gray-200 bg-transparent rounded-none p-0">
+                            <TabsTrigger value="params" className="px-6 py-2 text-lg font-bold">Parameters</TabsTrigger>
+                            <TabsTrigger value="headers" className="px-6 py-2 text-lg font-bold">Headers</TabsTrigger>
+                            <TabsTrigger value="body" className="px-6 py-2 text-lg font-bold">Body</TabsTrigger>
+                            <TabsTrigger value="auth" className="px-6 py-2 text-lg font-bold">Auth</TabsTrigger>
+                            <TabsTrigger value="scripts" className="px-6 py-2 text-lg font-bold">Scripts</TabsTrigger>
                           </TabsList>
-                        
-                          <div className="p-4">
-                            <TabsContent value="params" className="space-y-4 mt-0">
+                          <TabsContent value="params">
+                            <div className="space-y-4 mt-0">
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between mb-2">
                                   <Label className="text-base font-semibold text-purple-900 dark:text-purple-200">Parameters</Label>
@@ -2247,9 +2393,10 @@ export default function ReqNest() {
                                   Add Parameter
                                 </Button>
                               </div>
-                            </TabsContent>
-
-                            <TabsContent value="headers" className="space-y-4 mt-0">
+                            </div>
+                          </TabsContent>
+                          <TabsContent value="headers">
+                            <div className="space-y-4 mt-0">
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between mb-2">
                                   <Label className="text-base font-semibold text-purple-900 dark:text-purple-200">Headers</Label>
@@ -2286,13 +2433,14 @@ export default function ReqNest() {
                                   Add Header
                                 </Button>
                               </div>
-                            </TabsContent>
-
-                            <TabsContent value="body" className="space-y-4 mt-0">
+                            </div>
+                          </TabsContent>
+                          <TabsContent value="body">
+                            <div className="space-y-4 mt-0">
                               <div className="space-y-3">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between mb-2">
+                                  <Label className="text-base font-semibold text-purple-900 dark:text-purple-200">Body Type:</Label>
                                   <div className="flex items-center gap-2">
-                                    <Label className="text-sm font-medium text-purple-900 dark:text-purple-200">Body Type:</Label>
                                     <Select value={bodyType} onValueChange={setBodyType}>
                                       <SelectTrigger className="w-32">
                                         <SelectValue />
@@ -2304,37 +2452,37 @@ export default function ReqNest() {
                                         <SelectItem value="form">Form</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        try {
-                                          const parsed = JSON.parse(request.body);
-                                          const formatted = JSON.stringify(parsed, null, 2);
-                                          setRequest(prev => ({ ...prev, body: formatted }));
-                                          toast({ title: "JSON formatted successfully" });
-                                        } catch (error) {
-                                          toast({ title: "Invalid JSON", variant: "destructive" });
-                                        }
-                                      }}
-                                      className="h-8 px-3"
-                                      title="Beautify JSON"
-                                    >
-                                      <Sparkles className="w-4 h-4 mr-2" />
-                                      Beautify
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setRequest(prev => ({ ...prev, body: '' }))}
-                                      className="h-8 px-3"
-                                      title="Clear body"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Clear
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          try {
+                                            const parsed = JSON.parse(request.body);
+                                            const formatted = JSON.stringify(parsed, null, 2);
+                                            setRequest(prev => ({ ...prev, body: formatted }));
+                                            toast({ title: "JSON formatted successfully" });
+                                          } catch (error) {
+                                            toast({ title: "Invalid JSON", variant: "destructive" });
+                                          }
+                                        }}
+                                        className="h-8 px-3"
+                                        title="Beautify JSON"
+                                      >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Beautify
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setRequest(prev => ({ ...prev, body: '' }))}
+                                        className="h-8 px-3"
+                                        title="Clear body"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Clear
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="border rounded-lg overflow-hidden min-h-[200px] max-h-[60vh]">
@@ -2351,11 +2499,12 @@ export default function ReqNest() {
                                   />
                                 </div>
                               </div>
-                            </TabsContent>
-
-                            <TabsContent value="auth" className="space-y-4 mt-0">
-                              <div className="space-y-4">
-                                <div className="space-y-3">
+                            </div>
+                          </TabsContent>
+                          <TabsContent value="auth">
+                            <div className="space-y-4 mt-0">
+                              <div className="space-y-3">
+                                <div className="space-y-2">
                                   <Label className="text-sm font-medium text-purple-900 dark:text-purple-200">Authentication Type</Label>
                                   <Select value={request.auth.type} onValueChange={(value: any) => setRequest(prev => ({ ...prev, auth: { ...prev.auth, type: value } }))}>
                                     <SelectTrigger>
@@ -2441,9 +2590,10 @@ export default function ReqNest() {
                                   </div>
                                 )}
                               </div>
-                            </TabsContent>
-
-                            <TabsContent value="scripts" className="space-y-6 mt-0">
+                            </div>
+                          </TabsContent>
+                          <TabsContent value="scripts">
+                            <div className="space-y-6 mt-0">
                               <div className="space-y-4">
                                 <div>
                                   <Label className="text-sm font-semibold mb-1 flex items-center">
@@ -2473,39 +2623,9 @@ export default function ReqNest() {
                                   Scripts run in a sandboxed environment. You can use <code>context</code> to access environment variables, request, and response data.
                                 </div>
                               </div>
-                            </TabsContent>
-                          </div>
-                        </Tabs>
-                        
-                        {/* Proxy Settings */}
-                        {showAdvanced && (
-                          <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-                            <h4 className="text-sm font-medium mb-3">Proxy Settings</h4>
-                            <div className="space-y-3">
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id="proxy-enabled"
-                                  checked={proxyEnabled}
-                                  onChange={(e) => setProxyEnabled(e.target.checked)}
-                                  className="rounded"
-                                />
-                                <Label htmlFor="proxy-enabled">Enable Proxy</Label>
-                              </div>
-                              {proxyEnabled && (
-                                <div className="space-y-2">
-                                  <Label>Proxy URL</Label>
-                                  <Input
-                                    placeholder="https://proxy.example.com:8080"
-                                    value={proxyUrl}
-                                    onChange={(e) => setProxyUrl(e.target.value)}
-                                    className="bg-background"
-                                  />
-                                </div>
-                              )}
                             </div>
-                          </div>
-                        )}
+                          </TabsContent>
+                        </Tabs>
                       </div>
                     </div>
                   </div>
@@ -2519,8 +2639,8 @@ export default function ReqNest() {
                   <div className="h-full p-2 sm:p-4 overflow-y-auto">
                     <div className="space-y-4">
                       {/* Response Section */}
-                      <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 dark:from-purple-900/10 dark:via-pink-900/10 dark:to-yellow-900/10 rounded-2xl border border-purple-200 dark:border-purple-700 shadow-md">
-                        <div className="border-b border-purple-200 dark:border-purple-700 p-4 rounded-t-2xl bg-gradient-to-r from-purple-100 via-pink-100 to-yellow-100 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-yellow-900/20">
+                      <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none p-6">
+                        <div className="border-b border-[#e5e7eb] p-4 rounded-t-2xl bg-gradient-to-r from-purple-100 via-pink-100 to-yellow-100">
                           <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-purple-900 dark:text-purple-200 tracking-wide">Response</h3>
                             <div className="flex items-center gap-2">
@@ -2610,9 +2730,22 @@ export default function ReqNest() {
                                   <h4 className="text-base font-semibold">Response Headers</h4>
                                   <div className="max-h-32 overflow-y-auto grid grid-cols-1 gap-2">
                                     {Object.entries(response.headers || {}).map(([key, value]) => (
-                                      <div key={key} className="flex gap-2 text-xs bg-muted/30 rounded p-2">
+                                      <div key={key} className="flex gap-2 text-xs bg-muted/30 rounded p-2 items-center">
                                         <span className="font-mono font-semibold w-40 flex-shrink-0">{key}</span>
-                                        <span className="font-mono break-all">{value}</span>
+                                        <span className="font-mono break-all flex-1">{value}</span>
+                                        {activeEnvironment && (
+                                          <button
+                                            className="ml-2 p-1 hover:bg-accent rounded"
+                                            title="Add to Env"
+                                            onClick={() => {
+                                              setAddToEnvKey(key);
+                                              setAddToEnvValue(value);
+                                              setShowAddToEnvDialog(true);
+                                            }}
+                                          >
+                                            <Plus className="w-4 h-4 text-primary" />
+                                          </button>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
@@ -2716,37 +2849,91 @@ export default function ReqNest() {
 
         {/* Environments Dialog */}
         <Dialog open={showEnvironments} onOpenChange={setShowEnvironments}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl w-full">
             <DialogHeader>
-              <DialogTitle>Environments</DialogTitle>
+              <DialogTitle>Manage Environments</DialogTitle>
+              <DialogDescription>
+                Create, edit, and switch between environments. Variables in the active environment are available for substitution in your requests.
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              {environments.map((env) => (
-                <div key={env.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${env.isActive ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span className="font-medium">{env.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActiveEnvironment(env.id)}
-                      disabled={env.isActive}
-                    >
-                      {env.isActive ? 'Active' : 'Activate'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteEnvironment(env.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            <div className="flex gap-6">
+              {/* Environment List */}
+              <div className="w-1/3 border-r pr-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">Environments</span>
+                  <button className="text-xs text-primary" onClick={() => setShowNewEnvInput(true)}>+ New</button>
                 </div>
-              ))}
+                <ul className="space-y-1">
+                  {environments.map(env => (
+                    <li key={env.id} className="flex items-center justify-between group">
+                      <button
+                        className={`text-left flex-1 truncate ${env.id === activeEnvironment ? 'font-bold text-primary' : ''}`}
+                        onClick={() => setActiveEnv(env.id)}
+                      >
+                        {env.name}
+                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => deleteEnvironment(env.id)}>Delete</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {showNewEnvInput && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className="border rounded px-2 py-1 text-xs flex-1"
+                      placeholder="Environment name"
+                      value={newEnvironmentName}
+                      onChange={e => setNewEnvironmentName(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      className="text-xs text-primary"
+                      onClick={() => { createEnvironment(); setShowNewEnvInput(false); }}
+                      disabled={!newEnvironmentName.trim()}
+                    >Create</button>
+                    <button className="text-xs text-muted-foreground" onClick={() => setShowNewEnvInput(false)}>Cancel</button>
+                  </div>
+                )}
+              </div>
+              {/* Active Environment Variables */}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">Variables</span>
+                  <button className="text-xs text-primary" onClick={addEnvironmentVariable}>+ Add Variable</button>
+                </div>
+                <ul className="space-y-2">
+                  {Object.entries(environmentVariables).map(([key, value]) => (
+                    <li key={key} className="flex gap-2 items-center">
+                      <input
+                        className="border rounded px-2 py-1 text-xs w-32"
+                        value={key}
+                        onChange={e => {
+                          const newKey = e.target.value;
+                          setEnvironmentVariables(prev => {
+                            const updated = { ...prev };
+                            updated[newKey] = updated[key];
+                            delete updated[key];
+                            return updated;
+                          });
+                        }}
+                      />
+                      <input
+                        className="border rounded px-2 py-1 text-xs flex-1"
+                        value={value}
+                        onChange={e => updateEnvironmentVariable(key, e.target.value)}
+                      />
+                      <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => removeEnvironmentVariable(key)}>Delete</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <button className="btn btn-primary">Close</button>
+              </DialogClose>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -2759,7 +2946,7 @@ export default function ReqNest() {
             setBulkImportRequests(null);
             setSelectedFolder(undefined);
             setNewFolderName("");
-            setShowNewFolderInput(false);
+            setNewFolderForCollectionId(null);
           }
         }}>
           <DialogContent className="sm:max-w-lg">
@@ -2876,9 +3063,9 @@ export default function ReqNest() {
                               variant="ghost"
                               size="sm"
                               className="h-6 px-2 text-xs"
-                              onClick={() => setShowNewFolderInput(!showNewFolderInput)}
+                              onClick={() => setNewFolderForCollectionId(newFolderForCollectionId === collection.id ? null : collection.id)}
                             >
-                              {showNewFolderInput ? 'Cancel' : 'New Folder'}
+                              {newFolderForCollectionId === collection.id ? 'Cancel' : 'New Folder'}
                             </Button>
                           </div>
                           
@@ -2911,7 +3098,7 @@ export default function ReqNest() {
                           })()}
                           
                           {/* New Folder Input */}
-                          {showNewFolderInput && (
+                          {newFolderForCollectionId === collection.id && (
                             <div className="flex items-center gap-2">
                               <Input
                                 value={newFolderName}
@@ -2959,8 +3146,7 @@ export default function ReqNest() {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setShowImportFromSpecDialog(false);
-                  setShowNewCollectionDialog(true);
+                  setShowImportFromSpecDialog(false); // Just close the dialog
                 }}
                 className="flex-1"
               >
@@ -3020,9 +3206,22 @@ export default function ReqNest() {
                     <h4 className="text-base font-semibold">Response Headers</h4>
                     <div className="max-h-48 overflow-y-auto grid grid-cols-1 gap-2">
                       {Object.entries(response.headers || {}).map(([key, value]) => (
-                        <div key={key} className="flex gap-2 text-xs bg-muted/30 rounded p-2">
+                        <div key={key} className="flex gap-2 text-xs bg-muted/30 rounded p-2 items-center">
                           <span className="font-mono font-semibold w-40 flex-shrink-0">{key}</span>
-                          <span className="font-mono break-all">{value}</span>
+                          <span className="font-mono break-all flex-1">{value}</span>
+                          {activeEnvironment && (
+                            <button
+                              className="ml-2 p-1 hover:bg-accent rounded"
+                              title="Add to Env"
+                              onClick={() => {
+                                setAddToEnvKey(key);
+                                setAddToEnvValue(value);
+                                setShowAddToEnvDialog(true);
+                              }}
+                            >
+                              <Plus className="w-4 h-4 text-primary" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -3447,6 +3646,36 @@ export default function ReqNest() {
           initialText={bulkEditDialog.initialText}
           onApply={handleBulkEditApply}
         />
+
+        {/* Add to Env Dialog */}
+        <Dialog open={showAddToEnvDialog} onOpenChange={setShowAddToEnvDialog}>
+          <DialogContent className="max-w-xs w-full">
+            <DialogHeader>
+              <DialogTitle>Add to Environment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <label className="block text-xs font-medium">Variable Name</label>
+              <input
+                className="border rounded px-2 py-1 text-xs w-full"
+                value={addToEnvKey}
+                onChange={e => setAddToEnvKey(e.target.value)}
+                autoFocus
+              />
+              <label className="block text-xs font-medium">Value</label>
+              <input
+                className="border rounded px-2 py-1 text-xs w-full"
+                value={addToEnvValue}
+                onChange={e => setAddToEnvValue(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <button className="btn btn-primary" onClick={handleAddToEnv} disabled={!addToEnvKey.trim()}>Save</button>
+              <DialogClose asChild>
+                <button className="btn btn-secondary">Cancel</button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
 }

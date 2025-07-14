@@ -126,6 +126,20 @@ export function CollectionSidebar({
     return null;
   };
 
+  // On mount, initialize expandedItems from localStorage if available
+  useEffect(() => {
+    const savedExpanded = localStorage.getItem('reqnest-expanded-items');
+    if (savedExpanded) {
+      try {
+        const ids = JSON.parse(savedExpanded);
+        if (Array.isArray(ids)) {
+          setExpandedItems(new Set(ids));
+        }
+      } catch {}
+    }
+  }, []);
+
+  // On toggleExpanded, update localStorage
   const toggleExpanded = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
@@ -134,6 +148,7 @@ export function CollectionSidebar({
       newExpanded.add(itemId);
     }
     setExpandedItems(newExpanded);
+    localStorage.setItem('reqnest-expanded-items', JSON.stringify(Array.from(newExpanded)));
   };
 
   // Filter collections and their children based on search
@@ -344,7 +359,7 @@ export function CollectionSidebar({
           }}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {hasChildren && (
+            {(item.type === 'collection' || item.type === 'folder') && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -486,19 +501,6 @@ export function CollectionSidebar({
         <div className="space-y-1">
           {filteredCollections.map(collection => renderItem(collection))}
         </div>
-      </div>
-
-      {/* Add Collection Button */}
-      <div className="p-3 border-t">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAddCollection}
-          className="w-full"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Collection
-        </Button>
       </div>
 
       {/* Context Menu Portal */}

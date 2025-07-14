@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { JWTTabs, JWTTabsList, JWTTabsTrigger, JWTTabsContent } from "@/components/ui/JWTTabs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Copy, Eye, Edit2, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
@@ -305,12 +306,12 @@ export default function TokenPeek() {
   return (
     <div className="min-h-screen w-full bg-[#fafafa] flex flex-col items-center font-sans">
       <div className="w-[98vw] max-w-[1500px] mx-auto flex flex-col gap-8 py-8 px-0">
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList className="mb-8 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
-            <TabsTrigger value="decode" className="px-4 py-2 text-xl font-bold border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JWT Decoder</TabsTrigger>
-            <TabsTrigger value="edit" className="px-4 py-2 text-xl font-bold border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JWT Encoder</TabsTrigger>
-          </TabsList>
-          <TabsContent value="decode" className="flex flex-row gap-8 w-full">
+        <JWTTabs value={tab} onValueChange={setTab} className="w-full">
+          <JWTTabsList>
+            <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
+            <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
+          </JWTTabsList>
+          <JWTTabsContent value="decode" className="flex flex-row gap-8 w-full">
             {/* Left: JWT Input */}
             <div className="flex-1">
               <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
@@ -326,7 +327,7 @@ export default function TokenPeek() {
                 {error && <div className="bg-[#fbeaea] text-[#b94a48] px-6 py-2 text-sm border-b border-[#e5e7eb]">{error}</div>}
                 <div className="px-6 py-4 flex flex-col gap-4">
                   <CodeMirror
-                    value={token}
+                  value={token}
                     onChange={val => setToken(val)}
                     extensions={[jwtColorExtension(), EditorView.lineWrapping]}
                     basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
@@ -398,8 +399,8 @@ export default function TokenPeek() {
                 </div>
               </div>
             </div>
-          </TabsContent>
-          <TabsContent value="edit" className="flex flex-row gap-8 w-full">
+          </JWTTabsContent>
+          <JWTTabsContent value="edit" className="flex flex-row gap-8 w-full">
             {/* Left: Edit Header/Payload */}
             <div className="flex-1 flex flex-col gap-6">
               {/* Header Edit Card */}
@@ -411,34 +412,34 @@ export default function TokenPeek() {
                 <div className="px-6 py-4">
                   <Textarea value={headerEdit} onChange={e => setHeaderEdit(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[80px]" />
                   <ClaimsTable data={safeParseJSON(headerEdit)} editable onEdit={(key, value) => setHeaderEdit(JSON.stringify({ ...safeParseJSON(headerEdit), [key]: value }, null, 2))} />
-                </div>
-              </div>
+                    </div>
+                    </div>
               {/* Payload Edit Card */}
               <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                 <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                   <span className="text-lg font-semibold tracking-wide text-[#222]">PAYLOAD: DATA</span>
                   <Button size="sm" variant="ghost" onClick={() => setPayloadEdit('{}')}>CLEAR</Button>
-                </div>
+                    </div>
                 <div className="px-6 py-4">
                   <Textarea value={payloadEdit} onChange={e => setPayloadEdit(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[120px]" />
                   <ClaimsTable data={safeParseJSON(payloadEdit)} editable onEdit={(key, value) => setPayloadEdit(JSON.stringify({ ...safeParseJSON(payloadEdit), [key]: value }, null, 2))} />
-                </div>
+                    </div>
               </div>
               {/* Secret Edit Card */}
               <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                 <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                   <span className="text-lg font-semibold tracking-wide text-[#222]">SIGN JWT: SECRET</span>
                   <Button size="sm" variant="ghost" onClick={() => setSecret('')}>CLEAR</Button>
-                </div>
+                    </div>
                 <div className="px-6 py-4">
                   <Textarea placeholder="Secret" value={secret} onChange={e => setSecret(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
                   <div className="flex gap-2 mt-4">
                     <Button onClick={handleEdit} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode (unsigned)</Button>
                     <Button onClick={handleEditAndSign} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode & Sign</Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                        </div>
+                      </div>
+                        </div>
+                      </div>
             {/* Right: Encoded JWT Card */}
             <div className="flex-1">
               <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
@@ -454,12 +455,12 @@ export default function TokenPeek() {
                     basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
                     className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
                   />
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                      </div>
+                    </div>
+                  </div>
+          </JWTTabsContent>
+        </JWTTabs>
       </div>
-    </div>
+        </div>
   );
 }
