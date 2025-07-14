@@ -19,9 +19,13 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean,
 
   return (
     <div 
-      className={`sidebar-gradient border-r border-border flex flex-col transition-all duration-300 fixed left-0 top-0 h-screen z-40 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
+      className={`sidebar-gradient border-r border-border flex flex-col transition-all duration-300 fixed md:left-0 md:top-0 md:h-screen md:z-40 z-40 bg-sidebar \
+        ${isCollapsed ? 'w-16' : 'w-64'} \
+        sm:w-20 \
+        w-full md:w-auto \
+        md:relative md:fixed \
+        h-full md:h-screen \
+        overflow-y-auto`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

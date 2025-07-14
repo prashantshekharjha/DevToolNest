@@ -193,17 +193,17 @@ export default function CodeBeautifier() {
 
   return (
     <main className="flex-1 overflow-y-auto p-2 md:p-6 bg-[#fcfbfa] dark:bg-[#f7f5f2] min-h-screen">
-      <div className="max-w-[2000px] mx-auto">
+      <div className="max-w-screen-xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#2d1c0f] dark:text-[#2d1c0f]">Code Beautifier</h1>
-          <p className="text-lg text-[#6d4c2f] dark:text-[#6d4c2f]">Beautify or minify code for API requests and responses</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#2d1c0f] dark:text-[#2d1c0f]">Code Beautifier</h1>
+          <p className="text-base sm:text-lg text-[#6d4c2f] dark:text-[#6d4c2f]">Beautify or minify code for API requests and responses</p>
         </div>
-        <div className="flex flex-col md:flex-row gap-10 items-stretch">
+        <div className="flex flex-col lg:flex-row gap-6 items-stretch">
           {/* Input Editor */}
-          <div className={`flex-1 ${fullscreen === "input" ? fullscreenClass : ""}`} ref={inputRef}>
-            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[700px] min-w-[810px] ${fullscreen === "input" ? "h-screen m-0 max-w-[98vw]" : "max-w-[90vw]"} flex flex-col h-full`}>
-              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-6 border-b border-[#e5e0d8]">
-                <span className="font-semibold text-xl text-[#2d1c0f]">Input</span>
+          <div className={`flex-1 min-w-0 ${fullscreen === "input" ? fullscreenClass : ""}`} ref={inputRef}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[350px] w-full ${fullscreen === "input" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
+              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-4 md:p-6 border-b border-[#e5e0d8]">
+                <span className="font-semibold text-lg md:text-xl text-[#2d1c0f]">Input</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setFullscreen(fullscreen === "input" ? "none" : "input")}
                     className="text-[#2d1c0f] hover:bg-[#f3e7d9]">
@@ -215,16 +215,16 @@ export default function CodeBeautifier() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 flex-1 flex flex-col">
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-0">
                   <CodeMirror
                     value={input}
-                    height={fullscreen === "input" ? "80vh" : "600px"}
-                    minHeight="400px"
-                    maxHeight={fullscreen === "input" ? "80vh" : "900px"}
+                    height={fullscreen === "input" ? "80vh" : "300px"}
+                    minHeight="200px"
+                    maxHeight={fullscreen === "input" ? "80vh" : "600px"}
                     extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
                     onChange={val => setInput(val)}
                     theme="light"
-                    className="font-mono text-base border-none min-h-[400px] bg-[#fffdfa] text-[#2d1c0f]"
+                    className="font-mono text-base border-none min-h-[200px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
                   <Button
                     size="sm"
@@ -254,9 +254,9 @@ export default function CodeBeautifier() {
           </div>
 
           {/* Center Controls */}
-          <div className="flex flex-col items-center justify-center gap-8 min-w-[220px]">
+          <div className="flex flex-col items-center justify-center gap-4 w-full sm:w-auto">
             <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-52 bg-[#fffdfa] border-[#bfae9c] text-lg font-semibold">
+              <SelectTrigger className="w-full sm:w-52 bg-[#fffdfa] border-[#bfae9c] text-base sm:text-lg font-semibold">
                 <SelectValue placeholder="Language" />
               </SelectTrigger>
               <SelectContent>
@@ -266,14 +266,14 @@ export default function CodeBeautifier() {
               </SelectContent>
             </Select>
             <Button
-              className="w-44 h-16 text-lg bg-[#6d4c2f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
+              className="w-full sm:w-44 h-12 sm:h-16 text-base sm:text-lg bg-[#6d4c2f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
               onClick={() => { setMode('beautify'); handleFormat(); }}
               size="lg"
             >
               <Wand2 className="w-7 h-7 mr-2" /> Beautify
             </Button>
             <Button
-              className="w-44 h-16 text-lg bg-[#2d1c0f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
+              className="w-full sm:w-44 h-12 sm:h-16 text-base sm:text-lg bg-[#2d1c0f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
               onClick={() => { setMode('minify'); handleFormat(); }}
               size="lg"
             >
@@ -282,10 +282,10 @@ export default function CodeBeautifier() {
           </div>
 
           {/* Output Editor */}
-          <div className={`flex-1 ${fullscreen === "output" ? fullscreenClass : ""}`} ref={outputRef}>
-            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[700px] min-w-[810px] ${fullscreen === "output" ? "h-screen m-0 max-w-[98vw]" : "max-w-[90vw]"} flex flex-col h-full`}>
-              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-6 border-b border-[#e5e0d8]">
-                <span className="font-semibold text-xl text-[#2d1c0f]">Output</span>
+          <div className={`flex-1 min-w-0 ${fullscreen === "output" ? fullscreenClass : ""}`} ref={outputRef}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[350px] w-full ${fullscreen === "output" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
+              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-4 md:p-6 border-b border-[#e5e0d8]">
+                <span className="font-semibold text-lg md:text-xl text-[#2d1c0f]">Output</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setFullscreen(fullscreen === "output" ? "none" : "output")}
                     className="text-[#2d1c0f] hover:bg-[#f3e7d9]">
@@ -300,16 +300,16 @@ export default function CodeBeautifier() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 flex-1 flex flex-col">
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-0">
                   <CodeMirror
                     value={output}
-                    height={fullscreen === "output" ? "80vh" : "600px"}
-                    minHeight="400px"
-                    maxHeight={fullscreen === "output" ? "80vh" : "900px"}
+                    height={fullscreen === "output" ? "80vh" : "300px"}
+                    minHeight="200px"
+                    maxHeight={fullscreen === "output" ? "80vh" : "600px"}
                     readOnly
                     extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
                     theme="light"
-                    className="font-mono text-base border-none min-h-[400px] bg-[#fffdfa] text-[#2d1c0f]"
+                    className="font-mono text-base border-none min-h-[200px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
                 </div>
                 {error && (
