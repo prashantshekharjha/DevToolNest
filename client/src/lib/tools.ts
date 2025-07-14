@@ -43,20 +43,19 @@ export const tools: Tool[] = [
   },
   {
     id: 'token-peek',
-    name: 'TokenPeek',
-    description: 'Decode and analyze JWT tokens with expiration info and validity checks.',
+    name: 'Token Peek',
+    description: 'JWT toolkit: decode, edit, and validate JWT tokens. Supports editing header/payload, signature validation, and developer-friendly features.',
     icon: Key,
     route: '/token-peek',
     color: 'bg-amber-500',
     status: 'ready'
   },
-
   {
-    id: 'pretty-json',
-    name: 'PrettyJSON',
-    description: 'Format, validate, and beautify JSON with syntax error detection.',
-    icon: Code,
-    route: '/pretty-json',
+    id: 'code-beautifier',
+    name: 'Code Beautifier',
+    description: 'Beautify or minify JSON, YAML, XML, or plain text. Upload, download, and copy with ease.',
+    icon: Wand2,
+    route: '/code-beautifier',
     color: 'bg-cyan-500',
     status: 'ready'
   },

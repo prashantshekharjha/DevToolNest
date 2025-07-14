@@ -3,18 +3,11 @@ import { cn } from "@/lib/utils";
 import { tools } from "@/lib/tools";
 import { Settings, Home, Wrench, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function Sidebar() {
   const [location] = useLocation();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const isActive = (route: string) => {
     return location === route || (route === "/" && location === "/");
@@ -109,26 +102,7 @@ export function Sidebar() {
       </nav>
 
       {/* Theme Toggle */}
-      <div className="p-4 border-t border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          className={cn("w-full", isCollapsed ? "justify-center" : "justify-start")}
-        >
-          {mounted && theme === "light" ? (
-            <>
-              <Moon className={cn("w-5 h-5", !isCollapsed && "mr-2")} />
-              {!isCollapsed && "Dark Mode"}
-            </>
-          ) : (
-            <>
-              <Sun className={cn("w-5 h-5", !isCollapsed && "mr-2")} />
-              {!isCollapsed && "Light Mode"}
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Removed theme toggle button */}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { storage } from "@/lib/storage";
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { EditorView } from '@codemirror/view';
 import { CollectionSidebar, CollectionItem } from "../components/sidebar/collection-sidebar";
 import { HistoryDialog } from "../components/dialogs/history-dialog";
 import { BulkEditDialog } from "../components/dialogs/bulk-edit-dialog";
@@ -2340,13 +2341,13 @@ export default function ReqNest() {
                                   <CodeMirror
                                     value={request.body}
                                     onChange={(value) => setRequest(prev => ({ ...prev, body: value }))}
-                                    extensions={[json()]}
+                                    extensions={[json(), EditorView.lineWrapping]}
                                     theme={oneDark}
                                     height="100%"
                                     minHeight="200px"
                                     maxHeight="60vh"
                                     placeholder="Enter JSON request body..."
-                                    className="text-sm"
+                                    className="text-sm [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
                                   />
                                 </div>
                               </div>
@@ -2620,13 +2621,13 @@ export default function ReqNest() {
                               <div className="border rounded-lg overflow-hidden min-h-[200px] max-h-[60vh]">
                                 <CodeMirror
                                   value={response.data}
-                                  extensions={[json()]}
+                                  extensions={[json(), EditorView.lineWrapping]}
                                   theme={oneDark}
                                   height="100%"
                                   minHeight="200px"
                                   maxHeight="60vh"
                                   editable={false}
-                                  className="text-sm"
+                                  className="text-sm [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
                                 />
                               </div>
                             </div>
@@ -2981,12 +2982,12 @@ export default function ReqNest() {
                   <CodeMirror
                     value={request.body}
                     onChange={(value) => setRequest(prev => ({ ...prev, body: value }))}
-                    extensions={[json()]}
+                    extensions={[json(), EditorView.lineWrapping]}
                     theme={oneDark}
                     height="100%"
                     minHeight="400px"
                     maxHeight="80vh"
-                    className="text-base"
+                    className="text-base [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
                   />
                 </div>
               </div>
@@ -3005,13 +3006,13 @@ export default function ReqNest() {
                 <div className="border rounded-lg overflow-hidden min-h-[400px] max-h-[80vh]">
                   <CodeMirror
                     value={response?.data || ''}
-                    extensions={[json()]}
+                    extensions={[json(), EditorView.lineWrapping]}
                     theme={oneDark}
                     height="100%"
                     minHeight="400px"
                     maxHeight="80vh"
                     editable={false}
-                    className="text-base"
+                    className="text-base [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
                   />
                 </div>
                 {response && (

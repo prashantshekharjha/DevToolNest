@@ -14,7 +14,7 @@ import ReqNest from "@/pages/reqnest";
 import SpecCraft from "@/pages/spec-craft";
 import TokenPeek from "@/pages/token-peek";
 
-import PrettyJSON from "@/pages/pretty-json";
+import CodeBeautifier from "@/pages/code-beautifier";
 import DataMorph from "@/pages/data-morph";
 import TimeFlip from "@/pages/time-flip";
 import MockWizard from "@/pages/mock-wizard";
@@ -36,7 +36,7 @@ function Router() {
           <Route path="/spec-craft" component={SpecCraft} />
           <Route path="/token-peek" component={TokenPeek} />
 
-          <Route path="/pretty-json" component={PrettyJSON} />
+          <Route path="/code-beautifier" component={CodeBeautifier} />
           <Route path="/data-morph" component={DataMorph} />
           <Route path="/time-flip" component={TimeFlip} />
           <Route path="/mock-wizard" component={MockWizard} />
