@@ -1,71 +1,90 @@
-import { useState } from "react";
-import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, Wand2, Copy, Download, CheckCircle, AlertCircle, Minimize2, Maximize2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Copy, Download, Trash2, Wand2, Minimize2, AlertCircle, Maximize2, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import * as yaml from 'js-yaml';
+import CodeMirror from '@uiw/react-codemirror';
+import { EditorView } from '@codemirror/view';
+import { json as jsonLang } from '@codemirror/lang-json';
+import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import { xml as xmlLang } from '@codemirror/lang-xml';
+import prettier from 'prettier/standalone';
+// Prettier v3.x: Use plugins from 'prettier/plugins/*' for non-core languages
+import parserYaml from 'prettier/plugins/yaml';
+
+// Add a simple JSON tree view component
+function JsonTree({ data }: { data: any }) {
+  const [expanded, setExpanded] = useState(true);
+  if (typeof data !== 'object' || data === null) return <span>{String(data)}</span>;
+  return (
+    <div className="font-mono text-sm bg-[#f8f6f2] rounded-lg p-4 mt-4 border border-[#e5e0d8]">
+      <button className="mb-2 text-xs text-[#6d4c2f] underline" onClick={() => setExpanded(e => !e)}>
+        {expanded ? 'Collapse' : 'Expand'}
+      </button>
+      {expanded && (
+        <pre className="whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+      )}
+    </div>
+  );
+}
 
 const LANGUAGES = [
-  { label: "JSON", value: "json" },
-  { label: "YAML", value: "yaml" },
-  { label: "XML", value: "xml" },
-  { label: "Plain Text", value: "text" },
+  { label: 'JSON', value: 'json', ext: 'json' },
+  { label: 'YAML', value: 'yaml', ext: 'yaml' },
+  { label: 'XML', value: 'xml', ext: 'xml' },
+  { label: 'Text', value: 'text', ext: 'txt' },
+  { label: 'HTTP', value: 'http', ext: 'http' },
+  { label: 'cURL', value: 'curl', ext: 'sh' },
 ];
+
+function getCodeMirrorLang(lang: string) {
+  switch (lang) {
+    case 'json': return jsonLang();
+    case 'yaml': return yamlLang();
+    case 'xml': return xmlLang();
+    // case 'http': return httpLang(); // No such package, fallback to plain text
+    // case 'curl': return httpLang(); // No such package, fallback to plain text
+    default: return undefined;
+  }
+}
 
 function beautify(content: string, lang: string) {
   try {
-    if (lang === "json") {
-      return JSON.stringify(JSON.parse(content), null, 2);
-    } else if (lang === "yaml") {
-      const obj = yaml.load(content);
-      return yaml.dump(obj, { indent: 2 });
-    } else if (lang === "xml") {
+    if (lang === 'json') {
+      // Prettier v3.x: No plugin needed for JSON
+      return prettier.format(content, { parser: 'json', tabWidth: 2, useTabs: false, printWidth: 80 });
+    } else if (lang === 'yaml') {
+      if (!parserYaml) throw new Error('Prettier parserYaml plugin is missing');
+      return prettier.format(content, { parser: 'yaml', plugins: [parserYaml], tabWidth: 2, useTabs: false, printWidth: 80 });
+    } else if (lang === 'xml') {
       // Simple XML beautifier
-      const PADDING = "  ";
-      let formatted = "";
-      const reg = /(>)(<)(\/*)/g;
-      let xml = content.replace(reg, "$1\r\n$2$3");
-      let pad = 0;
-      xml.split("\r\n").forEach((node) => {
-        let indent = 0;
-        if (node.match(/.+<\/.+>$/)) {
-          indent = 0;
-        } else if (node.match(/^<\//)) {
-          if (pad !== 0) pad -= 1;
-        } else if (node.match(/^<[^!?]+[^\/>]>.*$/)) {
-          indent = 1;
-        } else {
-          indent = 0;
-        }
-        formatted += PADDING.repeat(pad) + node + "\n";
-        pad += indent;
-      });
-      return formatted.trim();
+      return content.replace(/(>)(<)(\/*)/g, '$1\n$2$3').replace(/\n\s*/g, '\n').trim();
+    } else if (lang === 'http' || lang === 'curl') {
+      return content.trim();
     } else {
       return content;
     }
   } catch (e) {
-    return content;
+    throw new Error((e as Error).message || 'Beautify failed');
   }
 }
 
 function minify(content: string, lang: string) {
   try {
-    if (lang === "json") {
+    if (lang === 'json') {
       return JSON.stringify(JSON.parse(content));
-    } else if (lang === "yaml") {
-      const obj = yaml.load(content);
-      return yaml.dump(obj, { indent: 0, flowLevel: -1 });
-    } else if (lang === "xml") {
-      return content.replace(/>\s+</g, "><").trim();
+    } else if (lang === 'yaml') {
+      return content.replace(/\n/g, '').replace(/\s+/g, ' ');
+    } else if (lang === 'xml') {
+      return content.replace(/\s{2,}/g, '').replace(/\n/g, '');
+    } else if (lang === 'http' || lang === 'curl') {
+      return content.trim();
     } else {
-      return content.replace(/\s+/g, " ").trim();
+      return content;
     }
   } catch (e) {
-    return content;
+    throw new Error((e as Error).message || 'Minify failed');
   }
 }
 
@@ -76,18 +95,64 @@ export default function CodeBeautifier() {
   const [language, setLanguage] = useState("json");
   const [mode, setMode] = useState<"beautify" | "minify">("beautify");
   const [error, setError] = useState("");
+  const [inputValid, setInputValid] = useState<null | boolean>(null);
+  const [inputValidationMsg, setInputValidationMsg] = useState("");
+  const [fullscreen, setFullscreen] = useState<"none" | "input" | "output">("none");
+  const inputRef = useRef<HTMLDivElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
+
+  // Validate input on change or language change
+  useEffect(() => {
+    if (!input.trim()) {
+      setInputValid(null);
+      setInputValidationMsg("");
+      return;
+    }
+    try {
+      if (language === "json") {
+        JSON.parse(input);
+        setInputValid(true);
+        setInputValidationMsg("Valid JSON");
+      } else if (language === "yaml") {
+        // Use a try/catch for YAML
+        require("js-yaml").load(input);
+        setInputValid(true);
+        setInputValidationMsg("Valid YAML");
+      } else if (language === "xml") {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(input, "application/xml");
+        if (doc.getElementsByTagName("parsererror").length > 0) {
+          throw new Error("Invalid XML");
+        }
+        setInputValid(true);
+        setInputValidationMsg("Valid XML");
+      } else {
+        setInputValid(null);
+        setInputValidationMsg("");
+      }
+    } catch (e: any) {
+      setInputValid(false);
+      setInputValidationMsg(e.message || "Invalid content");
+    }
+  }, [input, language]);
 
   const handleFormat = () => {
     setError("");
     try {
-      const formatted = mode === "beautify" ? beautify(input, language) : minify(input, language);
-      setOutput(formatted);
+      let formatted;
+      if (mode === "beautify") {
+        formatted = beautify(input, language);
+      } else {
+        formatted = minify(input, language);
+      }
+      setOutput(typeof formatted === 'string' ? formatted : String(formatted));
       toast({
         title: mode === "beautify" ? "Beautified!" : "Minified!",
         description: `Your ${language.toUpperCase()} has been ${mode === "beautify" ? "beautified" : "minified"}.`,
       });
     } catch (e) {
       setError((e as Error).message || "Failed to format content");
+      setOutput("");
       toast({
         title: "Error",
         description: (e as Error).message || "Failed to format content",
@@ -106,24 +171,14 @@ export default function CodeBeautifier() {
 
   const downloadOutput = () => {
     if (!output) return;
+    const ext = LANGUAGES.find(l => l.value === language)?.ext || 'txt';
     const blob = new Blob([output], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `formatted.${language}`;
+    a.download = `formatted.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const uploadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      setInput(content);
-    };
-    reader.readAsText(file);
   };
 
   const clearAll = () => {
@@ -132,98 +187,142 @@ export default function CodeBeautifier() {
     setError("");
   };
 
+  // Fullscreen styles
+  const fullscreenClass =
+    "fixed inset-0 z-50 bg-white dark:bg-[#23272e] flex flex-col justify-center items-center w-screen h-screen p-0 m-0 transition-all duration-300";
+
   return (
-    <>
-      <Header 
-        title="Code Beautifier" 
-        subtitle="Beautify or minify JSON, YAML, XML, or plain text"
-      />
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <CardTitle>Code Beautifier</CardTitle>
-                <div className="flex gap-2 items-center">
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={language}
-                    onChange={e => setLanguage(e.target.value)}
-                  >
-                    {LANGUAGES.map(lang => (
-                      <option key={lang.value} value={lang.value}>{lang.label}</option>
-                    ))}
-                  </select>
-                  <Button
-                    variant={mode === "beautify" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setMode("beautify")}
-                  >
-                    <Maximize2 className="w-4 h-4 mr-1" /> Beautify
+    <main className="flex-1 overflow-y-auto p-2 md:p-6 bg-[#fcfbfa] dark:bg-[#f7f5f2] min-h-screen">
+      <div className="max-w-[2000px] mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[#2d1c0f] dark:text-[#2d1c0f]">Code Beautifier</h1>
+          <p className="text-lg text-[#6d4c2f] dark:text-[#6d4c2f]">Beautify or minify code for API requests and responses</p>
+        </div>
+        <div className="flex flex-col md:flex-row gap-10 items-stretch">
+          {/* Input Editor */}
+          <div className={`flex-1 ${fullscreen === "input" ? fullscreenClass : ""}`} ref={inputRef}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[700px] min-w-[810px] ${fullscreen === "input" ? "h-screen m-0 max-w-[98vw]" : "max-w-[90vw]"} flex flex-col h-full`}>
+              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-6 border-b border-[#e5e0d8]">
+                <span className="font-semibold text-xl text-[#2d1c0f]">Input</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setFullscreen(fullscreen === "input" ? "none" : "input")}
+                    className="text-[#2d1c0f] hover:bg-[#f3e7d9]">
+                    {fullscreen === "input" ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                   </Button>
-                  <Button
-                    variant={mode === "minify" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setMode("minify")}
-                  >
-                    <Minimize2 className="w-4 h-4 mr-1" /> Minify
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => document.getElementById('file-upload')?.click()}>
-                    <Upload className="w-4 h-4 mr-2" /> Upload
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={clearAll}>
+                  <Button variant="outline" size="sm" onClick={clearAll} className="border-[#bfae9c] text-[#2d1c0f]">
                     <Trash2 className="w-4 h-4 mr-2" /> Clear
                   </Button>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Textarea
-                    placeholder={`Paste your ${language.toUpperCase()} here...`}
+              </CardHeader>
+              <CardContent className="p-0 flex-1 flex flex-col">
+                <div className="relative flex-1">
+                  <CodeMirror
                     value={input}
-                    onChange={e => setInput(e.target.value)}
-                    className="font-mono text-sm min-h-[300px]"
+                    height={fullscreen === "input" ? "80vh" : "600px"}
+                    minHeight="400px"
+                    maxHeight={fullscreen === "input" ? "80vh" : "900px"}
+                    extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
+                    onChange={val => setInput(val)}
+                    theme="light"
+                    className="font-mono text-base border-none min-h-[400px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept={language === 'json' ? '.json' : language === 'yaml' ? '.yaml,.yml' : language === 'xml' ? '.xml' : '*'}
-                    onChange={uploadFile}
-                    className="hidden"
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(input)}
+                    disabled={!input}
+                  >
+                    <Copy className="w-4 h-4 mr-1" /> Copy
+                  </Button>
+                </div>
+                {/* Validation message */}
+                {inputValid === true && (
+                  <div className="flex items-center gap-2 text-green-700 mt-2 p-2 text-base">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold">{inputValidationMsg}</span>
+                  </div>
+                )}
+                {inputValid === false && (
+                  <div className="flex items-center gap-2 text-red-700 mt-2 p-2 text-base">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    <span className="font-semibold">{inputValidationMsg}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Center Controls */}
+          <div className="flex flex-col items-center justify-center gap-8 min-w-[220px]">
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="w-52 bg-[#fffdfa] border-[#bfae9c] text-lg font-semibold">
+                <SelectValue placeholder="Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map(lang => (
+                  <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-44 h-16 text-lg bg-[#6d4c2f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
+              onClick={() => { setMode('beautify'); handleFormat(); }}
+              size="lg"
+            >
+              <Wand2 className="w-7 h-7 mr-2" /> Beautify
+            </Button>
+            <Button
+              className="w-44 h-16 text-lg bg-[#2d1c0f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
+              onClick={() => { setMode('minify'); handleFormat(); }}
+              size="lg"
+            >
+              <Minimize2 className="w-7 h-7 mr-2" /> Minify
+            </Button>
+          </div>
+
+          {/* Output Editor */}
+          <div className={`flex-1 ${fullscreen === "output" ? fullscreenClass : ""}`} ref={outputRef}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[700px] min-w-[810px] ${fullscreen === "output" ? "h-screen m-0 max-w-[98vw]" : "max-w-[90vw]"} flex flex-col h-full`}>
+              <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-6 border-b border-[#e5e0d8]">
+                <span className="font-semibold text-xl text-[#2d1c0f]">Output</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setFullscreen(fullscreen === "output" ? "none" : "output")}
+                    className="text-[#2d1c0f] hover:bg-[#f3e7d9]">
+                    {fullscreen === "output" ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(output)} disabled={!output} className="border-[#bfae9c] text-[#2d1c0f]">
+                    <Copy className="w-4 h-4 mr-1" /> Copy
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadOutput} disabled={!output} className="border-[#bfae9c] text-[#2d1c0f]">
+                    <Download className="w-4 h-4 mr-1" /> Download
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 flex flex-col">
+                <div className="relative flex-1">
+                  <CodeMirror
+                    value={output}
+                    height={fullscreen === "output" ? "80vh" : "600px"}
+                    minHeight="400px"
+                    maxHeight={fullscreen === "output" ? "80vh" : "900px"}
+                    readOnly
+                    extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
+                    theme="light"
+                    className="font-mono text-base border-none min-h-[400px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
                 </div>
-                <div>
-                  <div className="flex gap-2 mb-2">
-                    <Button onClick={handleFormat}>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      {mode === "beautify" ? "Beautify" : "Minify"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(output)} disabled={!output}>
-                      <Copy className="w-4 h-4 mr-2" /> Copy
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={downloadOutput} disabled={!output}>
-                      <Download className="w-4 h-4 mr-2" /> Download
-                    </Button>
+                {error && (
+                  <div className="flex items-center gap-2 text-destructive mt-2 p-2">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm">{error}</span>
                   </div>
-                  <div className="code-editor min-h-[300px] overflow-auto bg-muted rounded p-2">
-                    <pre className="text-sm whitespace-pre-wrap">
-                      {output || `Your ${mode === "beautify" ? "beautified" : "minified"} ${language.toUpperCase()} will appear here...`}
-                    </pre>
-                  </div>
-                  {error && (
-                    <div className="flex items-center gap-2 text-destructive mt-2">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{error}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

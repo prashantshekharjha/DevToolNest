@@ -5,7 +5,7 @@ import { Settings, Home, Wrench, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-export function Sidebar() {
+export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (v: boolean) => void }) {
   const [location] = useLocation();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -13,16 +13,17 @@ export function Sidebar() {
     return location === route || (route === "/" && location === "/");
   };
 
-  const isHomePage = location === "/";
-  const isCollapsed = !isHomePage && !isHovered;
+  // Collapse on mouse leave, expand on mouse enter
+  const handleMouseEnter = () => setIsCollapsed(false);
+  const handleMouseLeave = () => setIsCollapsed(true);
 
   return (
     <div 
-      className={`sidebar-gradient border-r border-border flex flex-col transition-all duration-300 ${
+      className={`sidebar-gradient border-r border-border flex flex-col transition-all duration-300 fixed left-0 top-0 h-screen z-40 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Logo/Header */}
       <div className="p-4 border-b border-border">

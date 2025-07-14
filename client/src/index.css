@@ -1040,3 +1040,7 @@
   background: linear-gradient(135deg, #232946 0%, #434343 100%);
   box-shadow: 0 2px 8px 0 rgba(44, 62, 80, 0.18);
 }
+
+.cm-s-default .cm-property {
+  color: #b58900 !important;
+}

@@ -156,12 +156,21 @@ export default function TokenPeek() {
   const [privateKey, setPrivateKey] = useState("");
   const [validationResult, setValidationResult] = useState<string | null>(null);
 
-  // Persist last token
+  // Auto-decode when switching to the decode tab
+  useEffect(() => {
+    if (tab === 'decode') {
+      decodeToken();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  // Always restore token from localStorage on mount
   useEffect(() => {
     const last = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (last) setToken(last);
+    if (last && !token) setToken(last);
   }, []);
   useEffect(() => {
+    // Always save token to localStorage when changed
     if (token) localStorage.setItem(LOCAL_STORAGE_KEY, token);
   }, [token]);
 

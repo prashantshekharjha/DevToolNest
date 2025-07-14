@@ -5,11 +5,8 @@ import {
   Key, 
   FileText, 
   Code, 
-  RefreshCw, 
-  Clock, 
-  Wand2, 
-  Gauge, 
-  GitBranch 
+  Wand2,
+  Lock
 } from "lucide-react";
 
 export interface Tool {
@@ -60,48 +57,12 @@ export const tools: Tool[] = [
     status: 'ready'
   },
   {
-    id: 'data-morph',
-    name: 'DataMorph',
-    description: 'Convert between CSV and JSON formats with side-by-side preview.',
-    icon: RefreshCw,
-    route: '/data-morph',
-    color: 'bg-orange-500',
-    status: 'ready'
-  },
-  {
-    id: 'time-flip',
-    name: 'TimeFlip',
-    description: 'Convert Unix timestamps to human-readable dates and vice versa.',
-    icon: Clock,
-    route: '/time-flip',
-    color: 'bg-teal-500',
-    status: 'ready'
-  },
-  {
-    id: 'mock-wizard',
-    name: 'MockWizard',
-    description: 'Generate realistic mock data from JSON schemas using Faker.js.',
-    icon: Wand2,
-    route: '/mock-wizard',
-    color: 'bg-violet-500',
-    status: 'ready'
-  },
-  {
-    id: 'throttle-viz',
-    name: 'ThrottleViz',
-    description: 'Visualize API rate limiting strategies with real-time simulations.',
-    icon: Gauge,
-    route: '/throttle-viz',
-    color: 'bg-red-500',
-    status: 'ready'
-  },
-  {
-    id: 'flow-trace',
-    name: 'FlowTrace',
-    description: 'Generate PlantUML sequence diagrams from Java method call chains.',
-    icon: GitBranch,
-    route: '/flow-trace',
-    color: 'bg-pink-500',
+    id: 'encoder-decoder',
+    name: 'Encoder/Decoder',
+    description: 'Comprehensive encryption toolkit: Base64, URL encoding, hash functions, symmetric/asymmetric encryption, and more.',
+    icon: Lock,
+    route: '/encoder-decoder',
+    color: 'bg-purple-500',
     status: 'ready'
   }
 ];

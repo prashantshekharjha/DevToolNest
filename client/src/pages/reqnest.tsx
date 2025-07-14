@@ -224,6 +224,8 @@ export default function ReqNest() {
   const [showAddToEnvDialog, setShowAddToEnvDialog] = useState(false);
   const [addToEnvKey, setAddToEnvKey] = useState("");
   const [addToEnvValue, setAddToEnvValue] = useState("");
+  const [isUpdatingExistingVar, setIsUpdatingExistingVar] = useState(false);
+  const [lastActiveRequestInfo, setLastActiveRequestInfo] = useState<{ collectionId: string; requestId: string } | null>(null);
 
   useEffect(() => {
     const collections = storage.getCollections();
@@ -356,12 +358,49 @@ export default function ReqNest() {
         }
       };
     }
+
+    // Restore last active request on page load
+    const lastActiveRequest = localStorage.getItem('reqnest-last-active-request');
+    if (lastActiveRequest) {
+      try {
+        const { collectionId, requestId } = JSON.parse(lastActiveRequest);
+        if (collectionId && requestId) {
+          // Store the last active request info to restore after collections are loaded
+          setLastActiveRequestInfo({ collectionId, requestId });
+        }
+      } catch (error) {
+        console.error('Error parsing last active request:', error);
+      }
+    }
+
     return () => {
       if (reqnestChannel) {
         reqnestChannel.close();
       }
     };
   }, []);
+
+  // Restore last active request when collections are loaded
+  useEffect(() => {
+    if (lastActiveRequestInfo && collections.length > 0) {
+      const { collectionId, requestId } = lastActiveRequestInfo;
+      const collection = collections.find(c => c.id === collectionId);
+      const savedRequest = collection?.requests.find(r => r.id === requestId);
+      
+      if (savedRequest) {
+        const normalizedRequest = normalizeRequest(savedRequest);
+        setRequest(normalizedRequest);
+        setSelectedCollection(collectionId);
+        toast({
+          title: "Request restored",
+          description: `Restored "${savedRequest.name || 'Untitled'}" from collection`
+        });
+      }
+      
+      // Clear the last active request info after restoration
+      setLastActiveRequestInfo(null);
+    }
+  }, [collections, lastActiveRequestInfo]);
 
   const loadEnvironments = () => {
     const storedEnvs = storage.get<Environment[]>('reqnest-environments') || [];
@@ -725,6 +764,13 @@ export default function ReqNest() {
     collection.updatedAt = new Date();
     storage.saveCollection(collection);
     setCollections(prev => prev.map(c => c.id === collectionId ? collection : c));
+    
+    // Save the last active request for persistence
+    localStorage.setItem('reqnest-last-active-request', JSON.stringify({ 
+      collectionId, 
+      requestId: reqId 
+    }));
+    
     toast({
       title: updated ? "Request updated" : "Request saved",
       description: `Request ${updated ? 'updated' : 'saved'} to "${collection.name}"`
@@ -802,7 +848,15 @@ export default function ReqNest() {
     if (savedRequest) {
       const normalizedRequest = normalizeRequest(savedRequest);
       setRequest(normalizedRequest);
+      setSelectedCollection(collectionId);
       setResponse(null); // Clear response when switching requests
+      
+      // Save the last active request for persistence
+      localStorage.setItem('reqnest-last-active-request', JSON.stringify({ 
+        collectionId, 
+        requestId 
+      }));
+      
       toast({
         title: "Request loaded",
         description: "Request loaded from collection"
@@ -1587,6 +1641,9 @@ export default function ReqNest() {
     setRequest(normalizeRequest(item.request));
     setResponse(item.response);
     setShowHistory(false);
+    
+    // Clear last active request since history items aren't saved in collections
+    localStorage.removeItem('reqnest-last-active-request');
   };
 
   const deleteHistoryItem = (id: string) => {
@@ -1910,19 +1967,114 @@ export default function ReqNest() {
   // Add handler to save to env
   const handleAddToEnv = () => {
     if (!activeEnvironment) return;
-    setEnvironments(prev => prev.map(env =>
+    
+    const updatedEnvironments = environments.map(env =>
       env.id === activeEnvironment
         ? { ...env, variables: { ...env.variables, [addToEnvKey]: addToEnvValue } }
         : env
-    ));
-    storage.set('reqnest-environments', environments.map(env =>
-      env.id === activeEnvironment
-        ? { ...env, variables: { ...env.variables, [addToEnvKey]: addToEnvValue } }
-        : env
-    ));
+    );
+    
+    setEnvironments(updatedEnvironments);
+    storage.set('reqnest-environments', updatedEnvironments);
     setShowAddToEnvDialog(false);
-    toast({ title: 'Added to environment', description: `Saved as "${addToEnvKey}"` });
+    
+    const action = isUpdatingExistingVar ? 'Updated' : 'Added';
+    toast({ 
+      title: `${action} environment variable`, 
+      description: `${action} "${addToEnvKey}"` 
+    });
   };
+
+  // Helper to safely parse JSON
+  function tryParseJson(str: string) {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return undefined;
+    }
+  }
+
+  // Recursive renderer for JSON with Add to Env button for primitives
+  function renderJsonWithAddToEnv(obj: any, path = "", indent = 0): JSX.Element {
+    const indentPx = indent * 16;
+    const keyColor = "text-yellow-700 dark:text-yellow-300";
+    const stringColor = "text-green-700 dark:text-green-300";
+    const numberColor = "text-blue-700 dark:text-blue-300";
+    const booleanColor = "text-purple-700 dark:text-purple-300";
+    const nullColor = "text-gray-500 italic";
+    const braceColor = "text-gray-400";
+    const codeBg = "bg-[#f6f8fa] dark:bg-[#23272e]";
+    const fontMono = "font-mono text-xs";
+
+    if (typeof obj === "object" && obj !== null) {
+      if (Array.isArray(obj)) {
+        return (
+          <div className={`${codeBg} ${fontMono} rounded px-4 py-1`} style={{ marginLeft: indentPx }}>
+            <span className={braceColor}>[</span>
+            {obj.length === 0 ? null : obj.map((item, idx) => (
+              <div key={idx} className="flex items-start">
+                {renderJsonWithAddToEnv(item, `${path}[${idx}]`, indent + 1)}
+                {idx < obj.length - 1 && <span className={braceColor}>,</span>}
+              </div>
+            ))}
+            <span className={braceColor}>]</span>
+          </div>
+        );
+      } else {
+        const entries = Object.entries(obj);
+        return (
+          <div className={`${codeBg} ${fontMono} rounded px-4 py-1`} style={{ marginLeft: indentPx }}>
+            <span className={braceColor}>{'{'}</span>
+            {entries.length === 0 ? null : entries.map(([k, v], idx) => (
+              <div key={k} className="flex items-center" style={{ marginLeft: 16 }}>
+                <span className={`${keyColor}`}>{`"${k}"`}</span>
+                <span className={braceColor}>: </span>
+                {renderJsonWithAddToEnv(v, path ? `${path}.${k}` : k, indent + 1)}
+                {idx < entries.length - 1 && <span className={braceColor}>,</span>}
+              </div>
+            ))}
+            <span className={braceColor}>{'}'}</span>
+          </div>
+        );
+      }
+    } else {
+      let valueElem;
+      if (typeof obj === "string") {
+        valueElem = <span className={`${stringColor} break-all`}>{`"${obj}"`}</span>;
+      } else if (typeof obj === "number") {
+        valueElem = <span className={numberColor}>{obj}</span>;
+      } else if (typeof obj === "boolean") {
+        valueElem = <span className={booleanColor}>{String(obj)}</span>;
+      } else if (obj === null) {
+        valueElem = <span className={nullColor}>null</span>;
+      } else {
+        valueElem = <span>{String(obj)}</span>;
+      }
+      return (
+        <span className="flex items-center gap-1">
+          {valueElem}
+          {activeEnvironment && (
+            <button
+              className="ml-1 p-1 hover:bg-accent rounded"
+              title="Add to Env"
+              onClick={() => {
+                const activeEnv = environments.find(env => env.id === activeEnvironment);
+                const existingValue = activeEnv?.variables[path];
+                const isExisting = existingValue !== undefined;
+                
+                setAddToEnvKey(path);
+                setAddToEnvValue(String(obj));
+                setIsUpdatingExistingVar(isExisting);
+                setShowAddToEnvDialog(true);
+              }}
+            >
+              <Plus className="w-3 h-3 text-primary" />
+            </button>
+          )}
+        </span>
+      );
+    }
+  }
 
   return (
     <>
@@ -2291,8 +2443,8 @@ export default function ReqNest() {
             </div>
             
             {/* Split Pane Layout - Horizontal */}
-            <div className="flex-1 min-h-0">
-              <ResizablePanelGroup direction="horizontal" className="h-full">
+            <div className="flex-1 min-h-0 h-full">
+              <ResizablePanelGroup direction="horizontal" className="h-full min-h-screen">
                 {/* Request Panel */}
                 <ResizablePanel defaultSize={50} minSize={25} maxSize={75}>
                   <div className="h-full p-2 sm:p-4 overflow-y-auto">
@@ -2475,6 +2627,23 @@ export default function ReqNest() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
+                                        onClick={() => {
+                                          try {
+                                            const minified = JSON.stringify(JSON.parse(request.body));
+                                            setRequest(prev => ({ ...prev, body: minified }));
+                                            toast({ title: "Request minified" });
+                                          } catch (e) {
+                                            toast({ title: "Cannot minify", description: "Request body is not valid JSON", variant: "destructive" });
+                                          }
+                                        }}
+                                        className="h-8 px-3"
+                                        title="Minify JSON"
+                                      >
+                                        Minify
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setRequest(prev => ({ ...prev, body: '' }))}
                                         className="h-8 px-3"
                                         title="Clear body"
@@ -2490,12 +2659,10 @@ export default function ReqNest() {
                                     value={request.body}
                                     onChange={(value) => setRequest(prev => ({ ...prev, body: value }))}
                                     extensions={[json(), EditorView.lineWrapping]}
-                                    theme={oneDark}
                                     height="100%"
                                     minHeight="200px"
                                     maxHeight="60vh"
-                                    placeholder="Enter JSON request body..."
-                                    className="text-sm [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
+                                    className="bg-[#f6f8fa] dark:bg-[#23272e] font-mono text-xs [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
                                   />
                                 </div>
                               </div>
@@ -2632,7 +2799,7 @@ export default function ReqNest() {
                 </ResizablePanel>
                 
                 {/* Resizable Handle */}
-                <ResizableHandle />
+                <ResizableHandle className="!h-[calc(100%-2rem)] my-4 self-center" />
                 
                 {/* Response Panel */}
                 <ResizablePanel defaultSize={50} minSize={25} maxSize={75}>
@@ -2738,8 +2905,13 @@ export default function ReqNest() {
                                             className="ml-2 p-1 hover:bg-accent rounded"
                                             title="Add to Env"
                                             onClick={() => {
+                                              const activeEnv = environments.find(env => env.id === activeEnvironment);
+                                              const existingValue = activeEnv?.variables[key];
+                                              const isExisting = existingValue !== undefined;
+                                              
                                               setAddToEnvKey(key);
                                               setAddToEnvValue(value);
+                                              setIsUpdatingExistingVar(isExisting);
                                               setShowAddToEnvDialog(true);
                                             }}
                                           >
@@ -2751,18 +2923,34 @@ export default function ReqNest() {
                                   </div>
                                 </div>
                               )}
-                              <div className="border rounded-lg overflow-hidden min-h-[200px] max-h-[60vh]">
-                                <CodeMirror
-                                  value={response.data}
-                                  extensions={[json(), EditorView.lineWrapping]}
-                                  theme={oneDark}
-                                  height="100%"
-                                  minHeight="200px"
-                                  maxHeight="60vh"
-                                  editable={false}
-                                  className="text-sm [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
-                                />
-                              </div>
+                              {(() => {
+                                const parsed = tryParseJson(response?.data || '');
+                                if (parsed && typeof parsed === 'object') {
+                                  return (
+                                    <div className="mt-2 overflow-x-auto max-w-full">
+                                      <h4 className="text-base font-semibold mb-1">Response Body (JSON)</h4>
+                                      <div className="border rounded-lg p-2">
+                                        {renderJsonWithAddToEnv(parsed)}
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <div className="border rounded-lg overflow-hidden min-h-[200px] max-h-[60vh] bg-white dark:bg-[#23272e]">
+                                      <CodeMirror
+                                        value={response.data}
+                                        extensions={[json(), EditorView.lineWrapping]}
+                                        theme={oneDark}
+                                        height="100%"
+                                        minHeight="200px"
+                                        maxHeight="60vh"
+                                        editable={false}
+                                        className="text-sm [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap bg-white dark:bg-[#23272e]"
+                                      />
+                                    </div>
+                                  );
+                                }
+                              })()}
                             </div>
                           )}
                         </div>
@@ -2849,7 +3037,7 @@ export default function ReqNest() {
 
         {/* Environments Dialog */}
         <Dialog open={showEnvironments} onOpenChange={setShowEnvironments}>
-          <DialogContent className="max-w-2xl w-full">
+          <DialogContent className="max-w-4xl w-full">
             <DialogHeader>
               <DialogTitle>Manage Environments</DialogTitle>
               <DialogDescription>
@@ -2858,7 +3046,7 @@ export default function ReqNest() {
             </DialogHeader>
             <div className="flex gap-6">
               {/* Environment List */}
-              <div className="w-1/3 border-r pr-4">
+              <div className="w-1/4 border-r pr-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-sm">Environments</span>
                   <button className="text-xs text-primary" onClick={() => setShowNewEnvInput(true)}>+ New</button>
@@ -2896,37 +3084,89 @@ export default function ReqNest() {
                   </div>
                 )}
               </div>
+              
               {/* Active Environment Variables */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">Variables</span>
+                  <span className="font-semibold text-sm">
+                    Variables in "{environments.find(env => env.id === activeEnvironment)?.name || 'No Environment'}"
+                  </span>
                   <button className="text-xs text-primary" onClick={addEnvironmentVariable}>+ Add Variable</button>
                 </div>
-                <ul className="space-y-2">
-                  {Object.entries(environmentVariables).map(([key, value]) => (
-                    <li key={key} className="flex gap-2 items-center">
-                      <input
-                        className="border rounded px-2 py-1 text-xs w-32"
-                        value={key}
-                        onChange={e => {
-                          const newKey = e.target.value;
-                          setEnvironmentVariables(prev => {
-                            const updated = { ...prev };
-                            updated[newKey] = updated[key];
-                            delete updated[key];
-                            return updated;
-                          });
-                        }}
-                      />
-                      <input
-                        className="border rounded px-2 py-1 text-xs flex-1"
-                        value={value}
-                        onChange={e => updateEnvironmentVariable(key, e.target.value)}
-                      />
-                      <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => removeEnvironmentVariable(key)}>Delete</button>
-                    </li>
+                
+                {Object.keys(environmentVariables).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">No variables in this environment</p>
+                    <p className="text-xs mt-1">Add variables to use them in your requests with {'{{variable_name}}'}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {Object.entries(environmentVariables).map(([key, value]) => (
+                      <div key={key} className="flex gap-2 items-center p-2 border rounded-lg hover:bg-accent/30 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-medium text-primary">{key}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {value.length} chars
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate mt-1">
+                            {value.length > 50 ? `${value.substring(0, 50)}...` : value}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button 
+                            className="text-xs text-muted-foreground hover:text-primary" 
+                            onClick={() => {
+                              setAddToEnvKey(key);
+                              setAddToEnvValue(value);
+                              setIsUpdatingExistingVar(true);
+                              setShowAddToEnvDialog(true);
+                              setShowEnvironments(false);
+                            }}
+                            title="Edit variable"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            className="text-xs text-muted-foreground hover:text-destructive" 
+                            onClick={() => removeEnvironmentVariable(key)}
+                            title="Delete variable"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* All Variables Summary */}
+              <div className="w-1/4 border-l pl-4">
+                <div className="font-semibold text-sm mb-2">All Variables</div>
+                <div className="space-y-1 text-xs">
+                  {environments.map(env => (
+                    <div key={env.id} className="space-y-1">
+                      <div className={`font-medium ${env.id === activeEnvironment ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {env.name}
+                      </div>
+                      <div className="text-muted-foreground ml-2">
+                        {Object.keys(env.variables).length} variables
+                      </div>
+                      {Object.keys(env.variables).slice(0, 3).map(key => (
+                        <div key={key} className="ml-2 text-muted-foreground font-mono">
+                          {key}
+                        </div>
+                      ))}
+                      {Object.keys(env.variables).length > 3 && (
+                        <div className="ml-2 text-muted-foreground">
+                          +{Object.keys(env.variables).length - 3} more
+                        </div>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -3173,7 +3413,7 @@ export default function ReqNest() {
                     height="100%"
                     minHeight="400px"
                     maxHeight="80vh"
-                    className="text-base [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap"
+                    className="text-base [&_.cm-content]:break-words [&_.cm-line]:break-words [&_.cm-line]:whitespace-pre-wrap bg-white dark:bg-[#23272e]"
                   />
                 </div>
               </div>
@@ -3214,8 +3454,13 @@ export default function ReqNest() {
                               className="ml-2 p-1 hover:bg-accent rounded"
                               title="Add to Env"
                               onClick={() => {
+                                const activeEnv = environments.find(env => env.id === activeEnvironment);
+                                const existingValue = activeEnv?.variables[key];
+                                const isExisting = existingValue !== undefined;
+                                
                                 setAddToEnvKey(key);
                                 setAddToEnvValue(value);
+                                setIsUpdatingExistingVar(isExisting);
                                 setShowAddToEnvDialog(true);
                               }}
                             >
@@ -3649,29 +3894,86 @@ export default function ReqNest() {
 
         {/* Add to Env Dialog */}
         <Dialog open={showAddToEnvDialog} onOpenChange={setShowAddToEnvDialog}>
-          <DialogContent className="max-w-xs w-full">
+          <DialogContent className="max-w-xs w-full bg-gradient-to-br from-muted/60 to-background border border-border shadow-xl rounded-xl">
             <DialogHeader>
-              <DialogTitle>Add to Environment</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
+                  {isUpdatingExistingVar ? (
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  ) : (
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  )}
+                </span>
+                {isUpdatingExistingVar ? 'Update Environment Variable' : 'Add to Environment'}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isUpdatingExistingVar 
+                  ? `Update the value for "${addToEnvKey}" in your environment.`
+                  : 'Save this value as an environment variable for use in requests.'
+                }
+              </p>
             </DialogHeader>
-            <div className="space-y-2">
-              <label className="block text-xs font-medium">Variable Name</label>
-              <input
-                className="border rounded px-2 py-1 text-xs w-full"
-                value={addToEnvKey}
-                onChange={e => setAddToEnvKey(e.target.value)}
-                autoFocus
-              />
-              <label className="block text-xs font-medium">Value</label>
-              <input
-                className="border rounded px-2 py-1 text-xs w-full"
-                value={addToEnvValue}
-                onChange={e => setAddToEnvValue(e.target.value)}
-              />
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-xs font-medium mb-1">Variable Name</label>
+                <div className="space-y-2">
+                  <input
+                    className="border border-border rounded-lg px-3 py-2 text-xs w-full bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                    value={addToEnvKey}
+                    onChange={e => setAddToEnvKey(e.target.value)}
+                    autoFocus
+                    placeholder="e.g. access_token"
+                  />
+                  {/* Existing Variables Dropdown */}
+                  {Object.keys(environmentVariables).length > 0 && (
+                    <div className="space-y-1">
+                      <label className="block text-xs text-muted-foreground">Or select existing:</label>
+                      <div className="max-h-24 overflow-y-auto space-y-1">
+                        {Object.keys(environmentVariables).map(varName => (
+                          <button
+                            key={varName}
+                            className="w-full text-left px-2 py-1 text-xs rounded hover:bg-accent/50 transition-colors flex items-center justify-between"
+                            onClick={() => {
+                              setAddToEnvKey(varName);
+                              setAddToEnvValue(environmentVariables[varName]);
+                              setIsUpdatingExistingVar(true);
+                            }}
+                          >
+                            <span className="font-mono">{varName}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {environmentVariables[varName].length > 20 
+                                ? `${environmentVariables[varName].substring(0, 20)}...` 
+                                : environmentVariables[varName]
+                              }
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Value</label>
+                <input
+                  className="border border-border rounded-lg px-3 py-2 text-xs w-full bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                  value={addToEnvValue}
+                  onChange={e => setAddToEnvValue(e.target.value)}
+                  placeholder="Value to save"
+                />
+              </div>
             </div>
-            <DialogFooter>
-              <button className="btn btn-primary" onClick={handleAddToEnv} disabled={!addToEnvKey.trim()}>Save</button>
+            <DialogFooter className="pt-3">
+              <button className="btn btn-primary w-full" onClick={handleAddToEnv} disabled={!addToEnvKey.trim()}>
+                {isUpdatingExistingVar ? (
+                  <svg className="inline-block mr-1 -mt-0.5" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                ) : (
+                  <svg className="inline-block mr-1 -mt-0.5" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                )}
+                {isUpdatingExistingVar ? 'Update Variable' : 'Save Variable'}
+              </button>
               <DialogClose asChild>
-                <button className="btn btn-secondary">Cancel</button>
+                <button className="btn btn-secondary w-full mt-2">Cancel</button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
