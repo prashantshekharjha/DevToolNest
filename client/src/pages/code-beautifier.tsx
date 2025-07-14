@@ -52,15 +52,33 @@ function getCodeMirrorLang(lang: string) {
 function beautify(content: string, lang: string) {
   try {
     if (lang === 'json') {
-      // Prettier v3.x: No plugin needed for JSON
-      return prettier.format(content, { parser: 'json', tabWidth: 2, useTabs: false, printWidth: 80 });
+      return JSON.stringify(JSON.parse(content), null, 2);
     } else if (lang === 'yaml') {
-      if (!parserYaml) throw new Error('Prettier parserYaml plugin is missing');
-      return prettier.format(content, { parser: 'yaml', plugins: [parserYaml], tabWidth: 2, useTabs: false, printWidth: 80 });
+      const yaml = require('js-yaml');
+      return yaml.dump(yaml.load(content));
     } else if (lang === 'xml') {
-      // Simple XML beautifier
-      return content.replace(/(>)(<)(\/*)/g, '$1\n$2$3').replace(/\n\s*/g, '\n').trim();
-    } else if (lang === 'http' || lang === 'curl') {
+      // Pretty print XML
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(content, 'application/xml');
+      if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Invalid XML');
+      }
+      // Format XML with indentation
+      const serializer = new XMLSerializer();
+      let xmlString = serializer.serializeToString(xmlDoc);
+      // Add line breaks and indentation
+      xmlString = xmlString.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
+      let formatted = '';
+      let pad = 0;
+      xmlString.split('\n').forEach((node) => {
+        let indent = 0;
+        if (node.match(/^<\//)) pad -= 2;
+        else if (node.match(/^<[^!?]/) && !node.match(/\/>$/)) indent = 2;
+        formatted += ' '.repeat(pad) + node + '\n';
+        pad += indent;
+      });
+      return formatted.trim();
+    } else if (lang === 'http' || lang === 'curl' || lang === 'text') {
       return content.trim();
     } else {
       return content;
@@ -75,10 +93,13 @@ function minify(content: string, lang: string) {
     if (lang === 'json') {
       return JSON.stringify(JSON.parse(content));
     } else if (lang === 'yaml') {
-      return content.replace(/\n/g, '').replace(/\s+/g, ' ');
+      const yaml = require('js-yaml');
+      // Load and dump as compact YAML (no extra newlines)
+      return yaml.dump(yaml.load(content), { flowLevel: -1 });
     } else if (lang === 'xml') {
-      return content.replace(/\s{2,}/g, '').replace(/\n/g, '');
-    } else if (lang === 'http' || lang === 'curl') {
+      // Minify XML by removing whitespace between tags
+      return content.replace(/>\s+</g, '><').replace(/\n/g, '').trim();
+    } else if (lang === 'http' || lang === 'curl' || lang === 'text') {
       return content.trim();
     } else {
       return content;
@@ -201,7 +222,7 @@ export default function CodeBeautifier() {
         <div className="flex flex-col lg:flex-row gap-6 items-stretch">
           {/* Input Editor */}
           <div className={`flex-1 min-w-0 ${fullscreen === "input" ? fullscreenClass : ""}`} ref={inputRef}>
-            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[350px] w-full ${fullscreen === "input" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[300px] sm:min-h-[500px] lg:min-h-[700px] w-full ${fullscreen === "input" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
               <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-4 md:p-6 border-b border-[#e5e0d8]">
                 <span className="font-semibold text-lg md:text-xl text-[#2d1c0f]">Input</span>
                 <div className="flex gap-2">
@@ -218,13 +239,13 @@ export default function CodeBeautifier() {
                 <div className="relative flex-1 min-w-0">
                   <CodeMirror
                     value={input}
-                    height={fullscreen === "input" ? "80vh" : "300px"}
-                    minHeight="200px"
+                    height={fullscreen === "input" ? "80vh" : "220px"}
+                    minHeight="180px"
                     maxHeight={fullscreen === "input" ? "80vh" : "600px"}
+                    className="font-mono text-base border-none min-h-[180px] sm:min-h-[350px] lg:min-h-[500px] bg-[#fffdfa] text-[#2d1c0f]"
                     extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
                     onChange={val => setInput(val)}
                     theme="light"
-                    className="font-mono text-base border-none min-h-[200px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
                   <Button
                     size="sm"
@@ -269,6 +290,7 @@ export default function CodeBeautifier() {
               className="w-full sm:w-44 h-12 sm:h-16 text-base sm:text-lg bg-[#6d4c2f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
               onClick={() => { setMode('beautify'); handleFormat(); }}
               size="lg"
+              disabled={inputValid !== true}
             >
               <Wand2 className="w-7 h-7 mr-2" /> Beautify
             </Button>
@@ -276,6 +298,7 @@ export default function CodeBeautifier() {
               className="w-full sm:w-44 h-12 sm:h-16 text-base sm:text-lg bg-[#2d1c0f] text-white font-bold shadow-md hover:bg-[#4b2e13]"
               onClick={() => { setMode('minify'); handleFormat(); }}
               size="lg"
+              disabled={inputValid !== true}
             >
               <Minimize2 className="w-7 h-7 mr-2" /> Minify
             </Button>
@@ -283,7 +306,7 @@ export default function CodeBeautifier() {
 
           {/* Output Editor */}
           <div className={`flex-1 min-w-0 ${fullscreen === "output" ? fullscreenClass : ""}`} ref={outputRef}>
-            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[350px] w-full ${fullscreen === "output" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
+            <Card className={`bg-[#fffdfa] dark:bg-[#f7f5f2] shadow-xl rounded-3xl min-h-[300px] sm:min-h-[500px] lg:min-h-[700px] w-full ${fullscreen === "output" ? "h-screen m-0 max-w-[98vw]" : "max-w-full"} flex flex-col h-full`}>
               <CardHeader className="flex flex-row items-center justify-between bg-[#fff6ed] rounded-t-2xl p-4 md:p-6 border-b border-[#e5e0d8]">
                 <span className="font-semibold text-lg md:text-xl text-[#2d1c0f]">Output</span>
                 <div className="flex gap-2">
@@ -303,13 +326,13 @@ export default function CodeBeautifier() {
                 <div className="relative flex-1 min-w-0">
                   <CodeMirror
                     value={output}
-                    height={fullscreen === "output" ? "80vh" : "300px"}
-                    minHeight="200px"
+                    height={fullscreen === "output" ? "80vh" : "220px"}
+                    minHeight="180px"
                     maxHeight={fullscreen === "output" ? "80vh" : "600px"}
                     readOnly
+                    className="font-mono text-base border-none min-h-[180px] sm:min-h-[350px] lg:min-h-[500px] bg-[#fffdfa] text-[#2d1c0f]"
                     extensions={getCodeMirrorLang(language) ? [getCodeMirrorLang(language)!, EditorView.lineWrapping] : [EditorView.lineWrapping]}
                     theme="light"
-                    className="font-mono text-base border-none min-h-[200px] bg-[#fffdfa] text-[#2d1c0f]"
                   />
                 </div>
                 {error && (
