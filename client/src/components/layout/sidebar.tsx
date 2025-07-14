@@ -54,11 +54,10 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean,
             style={{ minHeight: isCollapsed ? '2.5rem' : '2.5rem', transition: 'min-height 0.2s' }}
           >
             <div className={cn(
-              isActive("/")
-                ? "w-10 h-10 rounded-xl shadow-md -translate-y-0.5 z-10 bg-gradient-blue ring-2 ring-primary border border-border transition-all duration-200"
-                : "w-10 h-10 rounded-xl bg-gradient-emerald flex items-center justify-center transition-all duration-200"
+              "rounded-lg p-2 transition-all duration-200 flex items-center justify-center bg-primary/10 dark:bg-primary/20 group-hover:scale-105 group-hover:shadow-md",
+              isActive("/") ? "ring-2 ring-primary bg-primary text-white" : ""
             )}>
-              <Home className={isActive("/") ? "w-8 h-8 text-white" : "w-8 h-8 text-white"} />
+              <Home className={isActive("/") ? "w-7 h-7 text-white" : "w-7 h-7 text-primary"} />
             </div>
             {!isCollapsed && (
               <span className="font-medium text-base truncate">Home</span>
@@ -66,36 +65,20 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean,
           </a>
         </Link>
         {tools.map((tool, index) => {
-          const gradientClasses = [
-            'bg-gradient-blue',
-            'bg-gradient-purple', 
-            'bg-gradient-emerald',
-            'bg-gradient-amber',
-            'bg-gradient-rose',
-            'bg-gradient-indigo',
-            'bg-gradient-cyan',
-            'bg-gradient-orange',
-            'bg-gradient-teal',
-            'bg-gradient-purple',
-            'bg-gradient-emerald',
-            'bg-gradient-amber'
-          ];
-          const isToolActive = isActive(tool.route);
           return (
             <Link key={tool.id} href={tool.route}>
               <a className={cn(
                 "nav-item group",
-                isToolActive && "active",
+                isActive(tool.route) && "active",
                 isCollapsed ? "justify-center" : "flex flex-row items-center gap-x-2"
               )}
                 style={{ minHeight: isCollapsed ? '2.5rem' : '2.5rem', transition: 'min-height 0.2s' }}
               >
                 <div className={cn(
-                  isToolActive
-                    ? `w-10 h-10 rounded-xl shadow-md -translate-y-0.5 z-10 ${gradientClasses[index % gradientClasses.length]} ring-2 ring-primary border border-border transition-all duration-200`
-                    : `w-10 h-10 rounded-xl ${gradientClasses[index % gradientClasses.length]} flex items-center justify-center transition-all duration-200`
+                  "rounded-lg p-2 transition-all duration-200 flex items-center justify-center bg-primary/10 dark:bg-primary/20 group-hover:scale-105 group-hover:shadow-md",
+                  isActive(tool.route) ? "ring-2 ring-primary bg-primary text-white" : ""
                 )}>
-                  <tool.icon className={"w-8 h-8 text-white"} />
+                  <tool.icon className={isActive(tool.route) ? "w-7 h-7 text-white" : "w-7 h-7 text-primary"} />
                 </div>
                 {!isCollapsed && (
                   <span className="font-medium text-base truncate">{tool.name}</span>
