@@ -55,7 +55,7 @@ function App() {
     <WouterRouter base="/DevToolNest">
       <ThemeProvider
         attribute="class"
-        defaultTheme="dark"
+        defaultTheme="light"
         enableSystem
         disableTransitionOnChange
       >
