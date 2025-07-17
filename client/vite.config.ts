@@ -10,6 +10,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  define: {
+    global: 'globalThis',
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
@@ -22,6 +25,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['swagger-ui-react']
+    exclude: ['swagger-ui-react'],
+    include: ['crypto-js', 'node-forge']
   }
 }); 
