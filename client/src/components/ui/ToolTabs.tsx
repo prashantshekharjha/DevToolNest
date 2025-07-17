@@ -97,7 +97,7 @@ export function ToolTabs<T = any>({
         </Button>
       </div>
       {tabs.map((tab) => (
-        <TabsContent key={tab.id} value={tab.id} className="h-full">
+        <TabsContent key={tab.id} value={tab.id} className="h-full min-h-0 flex-1">
           {renderTabContent(tab)}
         </TabsContent>
       ))}

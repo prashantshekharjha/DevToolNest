@@ -268,7 +268,7 @@ export default function CodeBeautifier() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#fcfbfa] dark:bg-[#1a1a1a]">
+    <div className="flex flex-col h-screen min-h-0 bg-[#fcfbfa] dark:bg-[#1a1a1a]">
       <ToolTabs
         tabs={tabs}
         activeTabId={activeTabId}
@@ -290,7 +290,7 @@ export default function CodeBeautifier() {
             maximized,
           } = tab.state;
           return (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full min-h-0">
               {/* Header */}
               <div className="flex-shrink-0 bg-white dark:bg-[#2d2d2d] border-b border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center justify-between">
@@ -350,10 +350,10 @@ export default function CodeBeautifier() {
                 </div>
               )}
               {/* Main Content */}
-              <div className="flex-1 flex overflow-hidden">
+              <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* Input Panel */}
                 {(maximized === 'none' || maximized === 'input') && (
-                <div className={`flex-1 flex flex-col min-w-0 border-r border-gray-200 dark:border-gray-700 z-10 ${maximized === 'input' ? 'absolute inset-0 bg-white dark:bg-[#23272e] z-50' : ''}`} style={maximized === 'input' ? { position: 'absolute', left: 0, top: 0, width: '100vw', height: '100vh' } : {}}>
+                  <div className={`flex-1 flex flex-col min-w-0 min-h-0 h-full border-r border-gray-200 dark:border-gray-700 z-10 ${maximized === 'input' ? 'absolute inset-0 bg-white dark:bg-[#23272e] z-50' : ''}`} style={maximized === 'input' ? { position: 'absolute', left: 0, top: 0, width: '100vw', height: '100vh' } : {}}>
                   <div className="flex items-center justify-between p-3 bg-white dark:bg-[#2d2d2d] border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                       <h2 className="font-semibold text-gray-900 dark:text-white">Input</h2>
@@ -380,7 +380,7 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0 h-full">
+                  <div className="flex-1 min-h-0 h-full overflow-hidden max-h-[calc(100vh-200px)] min-h-[200px]">
                     <Editor
                       height="100%"
                       language={language}
@@ -424,7 +424,7 @@ export default function CodeBeautifier() {
                 )}
                 {/* Controls Panel */}
                 {maximized === 'none' && (
-                <div className="w-56 bg-gray-50 dark:bg-[#3a3a3a] border-l border-gray-200 dark:border-gray-700 p-4 flex flex-col gap-4">
+                  <div className="w-56 bg-gray-50 dark:bg-[#3a3a3a] border-l border-gray-200 dark:border-gray-700 p-4 flex flex-col gap-4 min-h-0 h-full overflow-y-auto">
                   <div className="space-y-3">
             <Button
                       className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
@@ -466,7 +466,7 @@ export default function CodeBeautifier() {
                 )}
                 {/* Output Panel */}
                 {(maximized === 'none' || maximized === 'output') && (
-                <div className={`flex-1 flex flex-col min-w-0 border-l border-gray-200 dark:border-gray-700 z-10 ${maximized === 'output' ? 'absolute inset-0 bg-white dark:bg-[#23272e] z-50' : ''}`} style={maximized === 'output' ? { position: 'absolute', left: 0, top: 0, width: '100vw', height: '100vh' } : {}}>
+                  <div className={`flex-1 flex flex-col min-w-0 min-h-0 h-full border-l border-gray-200 dark:border-gray-700 z-10 ${maximized === 'output' ? 'absolute inset-0 bg-white dark:bg-[#23272e] z-50' : ''}`} style={maximized === 'output' ? { position: 'absolute', left: 0, top: 0, width: '100vw', height: '100vh' } : {}}>
                   <div className="flex items-center justify-between p-3 bg-white dark:bg-[#2d2d2d] border-b border-gray-200 dark:border-gray-700">
                     <h2 className="font-semibold text-gray-900 dark:text-white">Output</h2>
                     <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0 h-full">
+                  <div className="flex-1 min-h-0 h-full overflow-hidden max-h-[calc(100vh-200px)] min-h-[200px]">
                     <Editor
                       height="100%"
                       language={language}
@@ -522,11 +522,11 @@ export default function CodeBeautifier() {
                   )}
                   </div>
                 )}
-          </div>
-        </div>
+              </div>
+            </div>
           );
         }}
       />
-      </div>
+    </div>
   );
 }

@@ -581,7 +581,7 @@ export default function EncoderDecoder() {
   const needsKey = ["aes", "des", "3des", "blowfish", "rc4"].includes(activeTab.state.activeMethod);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex flex-col h-screen min-h-0 bg-background">
       <ToolTabs
         tabs={tabs}
         activeTabId={activeTabId}
@@ -594,7 +594,7 @@ export default function EncoderDecoder() {
           const needsKey = ["aes", "des", "3des", "blowfish", "rc4"].includes(tab.state.activeMethod);
 
           return (
-            <div className="space-y-4">
+            <div className="flex flex-col h-full min-h-0">
               {/* Header */}
               <div className="text-center space-y-2">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -953,10 +953,10 @@ export default function EncoderDecoder() {
               </Card>
 
               {/* Input/Output */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0 flex-1">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0 flex-1 overflow-hidden">
                 {/* Input */}
-                <Card className="h-full min-h-0 flex-1 flex flex-col">
-                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col">
+                <Card className="h-full min-h-0 flex-1 flex flex-col overflow-hidden">
+                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-green-600" />
@@ -972,7 +972,7 @@ export default function EncoderDecoder() {
                         value={tab.state.input}
                         onChange={(e) => updateTabState(tab.id, (state) => ({ ...state, input: e.target.value }))}
                         placeholder={`Enter text to ${tab.state.operation}...`}
-                        className="min-h-[200px] font-mono h-full min-h-0 flex-1"
+                        className="min-h-[200px] font-mono h-full min-h-0 flex-1 overflow-auto"
                       />
                       
                       <div className="flex gap-2">
@@ -988,8 +988,8 @@ export default function EncoderDecoder() {
                 </Card>
 
                 {/* Output */}
-                <Card className="h-full min-h-0 flex-1 flex flex-col">
-                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col">
+                <Card className="h-full min-h-0 flex-1 flex flex-col overflow-hidden">
+                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Code className="w-5 h-5 text-blue-600" />
