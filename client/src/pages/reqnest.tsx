@@ -120,6 +120,7 @@ export default function ReqNest() {
   const [loading, setLoading] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | undefined>(undefined);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [fullScreenMode, setFullScreenMode] = useState<'request' | 'response' | 'both'>('both');
   const [showPassword, setShowPassword] = useState(false);
@@ -2076,6 +2077,20 @@ export default function ReqNest() {
     }
   }
 
+  // Handler for selecting a collection
+  const handleCollectionSelect = (item: CollectionItem) => {
+    setSelectedCollection(item.id);
+    setSelectedRequestId(undefined);
+    // ...any other logic
+  };
+
+  // Handler for selecting a request
+  const handleRequestSelect = (item: CollectionItem) => {
+    setSelectedRequestId(item.id);
+    setSelectedCollection(undefined);
+    // ...any other logic
+  };
+
   return (
     <>
       {!isFullScreen && !isMaximized && (
@@ -2265,20 +2280,8 @@ export default function ReqNest() {
                           children: [...folderItems, ...rootRequests]
                         };
                       })}
-                      onCollectionSelect={(item) => {
-                        if (item.type === 'collection') {
-                          setSelectedCollection(selectedCollection === item.id ? undefined : item.id);
-                        }
-                      }}
-                      onRequestSelect={(item) => {
-                        if (item.type === 'request') {
-                          // Find the collection containing this request
-                          const collection = collections.find(c => c.requests.some(r => r.id === item.id));
-                          if (collection && item.id) {
-                            loadFromCollection(collection.id, item.id);
-                          }
-                        }
-                      }}
+                      onCollectionSelect={handleCollectionSelect}
+                      onRequestSelect={handleRequestSelect}
                       onAddCollection={() => setShowNewCollectionDialog(true)}
                       onAddFolder={(collectionId) => {
                         addFolderToCollection(collectionId);
@@ -2345,7 +2348,7 @@ export default function ReqNest() {
                           moveRequest(itemId, targetId, targetType);
                         }
                       }}
-                      selectedItemId={selectedCollection || undefined}
+                      selectedItemId={selectedRequestId || selectedCollection || undefined}
                     />
                   </div>
                 ) : (

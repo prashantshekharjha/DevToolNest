@@ -65,28 +65,6 @@ export default function Home() {
             );
           })}
         </div>
-
-        {/* Stats Section */}
-        <div className="mt-10 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
-          <div className="stats-card glass-effect animate-float w-full" style={{ animationDelay: '0.2s' }}>
-            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent mb-2">
-              10
-            </div>
-            <div className="text-muted-foreground text-sm sm:text-base">Professional Tools</div>
-          </div>
-          <div className="stats-card glass-effect animate-float w-full" style={{ animationDelay: '0.4s' }}>
-            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent mb-2">
-              100%
-            </div>
-            <div className="text-muted-foreground text-sm sm:text-base">Client-Side Processing</div>
-          </div>
-          <div className="stats-card glass-effect animate-float w-full" style={{ animationDelay: '0.6s' }}>
-            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent mb-2">
-              ∞
-            </div>
-            <div className="text-muted-foreground text-sm sm:text-base">Usage Limit</div>
-          </div>
-        </div>
       </main>
     </>
   );

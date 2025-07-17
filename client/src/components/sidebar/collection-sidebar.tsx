@@ -345,7 +345,11 @@ export function CollectionSidebar({
             "flex items-center justify-between p-2 rounded-md transition-colors",
             item.type === 'request' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
             "hover:bg-accent/50",
-            isSelected && "bg-accent text-accent-foreground",
+            isSelected && (
+              item.type === 'collection'
+                ? "bg-secondary/20 border-l-4 border-secondary shadow-sm text-secondary-foreground"
+                : "bg-primary/10 dark:bg-primary/20 border-l-4 border-primary shadow-sm text-primary"
+            ),
             level > 0 && "ml-4",
             isDragOver && canDrop && "bg-blue-100 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-600"
           )}

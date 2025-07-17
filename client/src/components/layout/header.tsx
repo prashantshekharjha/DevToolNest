@@ -22,12 +22,6 @@ export function Header({ title, subtitle, right }: HeaderProps) {
         </div>
         <div className="flex items-center gap-4">
           {right}
-          <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-            <Bell className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-            <Settings className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </header>
