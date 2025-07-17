@@ -12,6 +12,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from '@codemirror/view';
 import { Decoration, DecorationSet } from '@codemirror/view';
 import ReactJson from 'react-json-view';
+import { ToolTabs, ToolTab } from "@/components/ui/ToolTabs";
+import { v4 as uuidv4 } from "uuid";
 
 const ALGORITHMS = [
   { label: 'HS256 (HMAC)', value: 'HS256' },
@@ -140,21 +142,67 @@ function ClaimsTable({ data, editable, onEdit }: { data: Record<string, any>, ed
   );
 }
 
+const DEFAULT_TAB_STATE = {
+  tab: "decode",
+  headerTab: "json",
+  payloadTab: "json",
+  token: "",
+  decoded: null as any,
+  error: "",
+  headerEdit: "",
+  payloadEdit: "",
+  algorithm: 'HS256',
+  secret: "",
+  publicKey: "",
+  privateKey: "",
+  validationResult: null as string | null,
+};
+
 export default function TokenPeek() {
   const { toast } = useToast();
-  const [tab, setTab] = useState("decode");
-  const [headerTab, setHeaderTab] = useState("json");
-  const [payloadTab, setPayloadTab] = useState("json");
-  const [token, setToken] = useState("");
-  const [decoded, setDecoded] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [headerEdit, setHeaderEdit] = useState("");
-  const [payloadEdit, setPayloadEdit] = useState("");
-  const [algorithm, setAlgorithm] = useState('HS256');
-  const [secret, setSecret] = useState("");
-  const [publicKey, setPublicKey] = useState("");
-  const [privateKey, setPrivateKey] = useState("");
-  const [validationResult, setValidationResult] = useState<string | null>(null);
+  const [tabs, setTabs] = useState<ToolTab<typeof DEFAULT_TAB_STATE>[]>([
+    { id: uuidv4(), title: 'Tab 1', state: { ...DEFAULT_TAB_STATE } },
+  ]);
+  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+
+  // Tab actions
+  const addTab = () => {
+    const newTab = { id: uuidv4(), title: `Tab ${tabs.length + 1}`, state: { ...DEFAULT_TAB_STATE } };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  };
+  const closeTab = (id: string) => {
+    let idx = tabs.findIndex((t) => t.id === id);
+    if (tabs.length === 1) return; // Don't close last tab
+    const newTabs = tabs.filter((t) => t.id !== id);
+    setTabs(newTabs);
+    if (activeTabId === id) {
+      setActiveTabId(newTabs[Math.max(0, idx - 1)].id);
+    }
+  };
+  const renameTab = (id: string, title: string) => {
+    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)));
+  };
+  const updateTabState = (id: string, updater: (state: typeof DEFAULT_TAB_STATE) => typeof DEFAULT_TAB_STATE) => {
+    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
+  };
+
+  const activeTab = tabs.find((t) => t.id === activeTabId)!;
+  const {
+    tab,
+    headerTab,
+    payloadTab,
+    token,
+    decoded,
+    error,
+    headerEdit,
+    payloadEdit,
+    algorithm,
+    secret,
+    publicKey,
+    privateKey,
+    validationResult,
+  } = activeTab.state;
 
   // Auto-decode when switching to the decode tab
   useEffect(() => {
@@ -167,8 +215,8 @@ export default function TokenPeek() {
   // Always restore token from localStorage on mount
   useEffect(() => {
     const last = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (last && !token) setToken(last);
-  }, []);
+    if (last && !token) updateTabState(activeTabId, (state) => ({ ...state, token: last }));
+  }, [activeTabId, token]);
   useEffect(() => {
     // Always save token to localStorage when changed
     if (token) localStorage.setItem(LOCAL_STORAGE_KEY, token);
@@ -176,43 +224,53 @@ export default function TokenPeek() {
 
   // Decode JWT
   const decodeToken = () => {
-    setError("");
-    setDecoded(null);
-    setValidationResult(null);
-    if (!token.trim()) {
-      setError("Please enter a JWT token");
-      return;
-    }
-    try {
-      const parts = token.split(".");
-      if (parts.length !== 3) throw new Error("Invalid JWT format");
-      const header = JSON.parse(decodeBase64Url(parts[0]));
-      const payload = JSON.parse(decodeBase64Url(parts[1]));
-      const signature = parts[2];
-      setDecoded({ header, payload, signature });
-      setHeaderEdit(prettyJSON(header));
-      setPayloadEdit(prettyJSON(payload));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to decode token");
-    }
+    updateTabState(activeTabId, (state) => {
+      const newState = { ...state };
+      newState.error = "";
+      newState.decoded = null;
+      newState.validationResult = null;
+      if (!token.trim()) {
+        newState.error = "Please enter a JWT token";
+        return newState;
+      }
+      try {
+        const parts = token.split(".");
+        if (parts.length !== 3) throw new Error("Invalid JWT format");
+        const header = JSON.parse(decodeBase64Url(parts[0]));
+        const payload = JSON.parse(decodeBase64Url(parts[1]));
+        const signature = parts[2];
+        newState.decoded = { header, payload, signature };
+        newState.headerEdit = prettyJSON(header);
+        newState.payloadEdit = prettyJSON(payload);
+        return newState;
+      } catch (err) {
+        newState.error = err instanceof Error ? err.message : "Failed to decode token";
+        return newState;
+      }
+    });
   };
 
   // Edit and update JWT (unsigned)
   const handleEdit = () => {
-    try {
-      const header = safeParseJSON(headerEdit);
-      const payload = safeParseJSON(payloadEdit);
-      const base64 = (obj: any) => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      // Preserve signature if present
-      const parts = token.split('.');
-      const signature = parts.length === 3 ? parts[2] : '';
-      const newToken = `${base64(header)}.${base64(payload)}.${signature}`;
-      setToken(newToken);
-      setDecoded({ header, payload, signature });
-      toast({ title: "Token updated (unsigned)" });
-    } catch (e) {
-      toast({ title: "Invalid JSON", description: (e as Error).message, variant: "destructive" });
-    }
+    updateTabState(activeTabId, (state) => {
+      const newState = { ...state };
+      try {
+        const header = safeParseJSON(headerEdit);
+        const payload = safeParseJSON(payloadEdit);
+        const base64 = (obj: any) => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        // Preserve signature if present
+        const parts = token.split('.');
+        const signature = parts.length === 3 ? parts[2] : '';
+        const newToken = `${base64(header)}.${base64(payload)}.${signature}`;
+        newState.token = newToken;
+        newState.decoded = { header, payload, signature };
+        toast({ title: "Token updated (unsigned)" });
+        return newState;
+      } catch (e) {
+        toast({ title: "Invalid JSON", description: (e as Error).message, variant: "destructive" });
+        return newState;
+      }
+    });
   };
 
   // Edit and re-sign JWT (if key provided)
@@ -237,8 +295,12 @@ export default function TokenPeek() {
       } else {
         throw new Error('Unsupported algorithm');
       }
-      setToken(newToken);
-      setDecoded(null);
+      updateTabState(activeTabId, (state) => {
+        const newState = { ...state };
+        newState.token = newToken;
+        newState.decoded = null;
+        return newState;
+      });
       toast({ title: "Token updated and signed!" });
     } catch (e) {
       toast({ title: "Invalid JSON or signing error", description: (e as Error).message, variant: "destructive" });
@@ -247,13 +309,12 @@ export default function TokenPeek() {
 
   // Validate JWT signature
   const handleValidate = async () => {
-    setValidationResult(null);
-    if (!token.trim()) {
-      setValidationResult("No token to validate");
-      return;
-    }
     try {
       let key;
+      if (!token.trim()) {
+        updateTabState(activeTabId, (state) => ({ ...state, validationResult: "No token to validate" }));
+        return;
+      }
       if (algorithm === 'HS256') {
         if (!secret) throw new Error('Secret required for HS256');
         key = new TextEncoder().encode(secret);
@@ -264,9 +325,9 @@ export default function TokenPeek() {
         throw new Error('Unsupported algorithm');
       }
       await jwtVerify(token, key);
-      setValidationResult('Signature is valid!');
+      updateTabState(activeTabId, (state) => ({ ...state, validationResult: 'Signature is valid!' }));
     } catch (e) {
-      setValidationResult((e as Error).message || 'Signature validation failed');
+      updateTabState(activeTabId, (state) => ({ ...state, validationResult: (e as Error).message || 'Signature validation failed' }));
     }
   };
 
@@ -276,16 +337,20 @@ export default function TokenPeek() {
   };
 
   const clearAll = () => {
-    setToken("");
-    setDecoded(null);
-    setError("");
-    setHeaderEdit("");
-    setPayloadEdit("");
-    setSecret("");
-    setPublicKey("");
-    setPrivateKey("");
-    setValidationResult(null);
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    updateTabState(activeTabId, (state) => {
+      const newState = { ...state };
+      newState.token = "";
+      newState.decoded = null;
+      newState.error = "";
+      newState.headerEdit = "";
+      newState.payloadEdit = "";
+      newState.secret = "";
+      newState.publicKey = "";
+      newState.privateKey = "";
+      newState.validationResult = null;
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      return newState;
+    });
   };
 
   const jwtParts = token.split('.')
@@ -314,162 +379,190 @@ export default function TokenPeek() {
 
   return (
     <div className="min-h-screen w-full bg-[#fafafa] flex flex-col items-center font-sans">
-      <div className="w-[98vw] max-w-[1500px] mx-auto flex flex-col gap-8 py-8 px-0">
-        <JWTTabs value={tab} onValueChange={setTab} className="w-full">
-          <JWTTabsList>
-            <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
-            <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
-          </JWTTabsList>
-          <JWTTabsContent value="decode" className="flex flex-row gap-8 w-full">
-            {/* Left: JWT Input */}
-            <div className="flex-1">
-              <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
-                    <Button size="sm" variant="ghost" onClick={clearAll}>CLEAR</Button>
-                  </div>
-                </div>
-                {decoded && <div className="bg-[#eafaf1] text-[#217a3c] px-6 py-2 text-sm border-b border-[#e5e7eb]">Valid JWT</div>}
-                {validationResult && <div className={`px-6 py-2 text-sm border-b border-[#e5e7eb] ${validationResult.includes('valid') ? 'bg-[#eafaf1] text-[#217a3c]' : 'bg-[#fbeaea] text-[#b94a48]'}`}>{validationResult}</div>}
-                {error && <div className="bg-[#fbeaea] text-[#b94a48] px-6 py-2 text-sm border-b border-[#e5e7eb]">{error}</div>}
-                <div className="px-6 py-4 flex flex-col gap-4">
-                  <CodeMirror
-                  value={token}
-                    onChange={val => setToken(val)}
-                    extensions={[jwtColorExtension(), EditorView.lineWrapping]}
-                    basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
-                    className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
-                  />
-                  <div className="flex justify-end">
-                    <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={decodeToken}>Decode</Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Right: Decoded Info */}
-            <div className="flex-1 flex flex-col gap-6">
-              {/* Header Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED HEADER</span>
-                  <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.header || {}))}>COPY</Button>
-                </div>
-                <div className="px-6 py-4">
-                  <Tabs value={headerTab} onValueChange={setHeaderTab} className="w-full">
-                    <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
-                      <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
-                      <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="json">
-                      <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
-                    </TabsContent>
-                    <TabsContent value="claims">
-                      {decoded?.header ? <ClaimsTable data={decoded.header} /> : <div className="text-[#a67c52] italic">No claims</div>}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </div>
-              {/* Payload Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED PAYLOAD</span>
-                  <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.payload || {}))}>COPY</Button>
-                </div>
-                <div className="px-6 py-4">
-                  <Tabs value={payloadTab} onValueChange={setPayloadTab} className="w-full">
-                    <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
-                      <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
-                      <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="json">
-                      <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
-                    </TabsContent>
-                    <TabsContent value="claims">
-                      {decoded?.payload ? <ClaimsTable data={decoded.payload} /> : <div className="text-[#a67c52] italic">No claims</div>}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </div>
-              {/* Signature Validation Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">JWT SIGNATURE VERIFICATION <span className="text-[#888] text-base font-normal">(OPTIONAL)</span></span>
-                </div>
-                <div className="px-6 py-4 flex flex-col gap-2">
-                  <label className="text-base font-semibold mb-1">SECRET</label>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(secret)}>COPY</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setSecret("")}>CLEAR</Button>
-                  </div>
-                  <Textarea placeholder="Secret" value={secret} onChange={e => setSecret(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
-                  <Button onClick={handleValidate} variant="default" className="bg-[#2d1c0f] hover:bg-[#444] w-fit mt-2">Validate</Button>
-                </div>
-              </div>
-            </div>
-          </JWTTabsContent>
-          <JWTTabsContent value="edit" className="flex flex-row gap-8 w-full">
-            {/* Left: Edit Header/Payload */}
-            <div className="flex-1 flex flex-col gap-6">
-              {/* Header Edit Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">HEADER: ALGORITHM & TOKEN TYPE</span>
-                  <Button size="sm" variant="ghost" onClick={() => setHeaderEdit('{}')}>CLEAR</Button>
-                </div>
-                <div className="px-6 py-4">
-                  <Textarea value={headerEdit} onChange={e => setHeaderEdit(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[80px]" />
-                  <ClaimsTable data={safeParseJSON(headerEdit)} editable onEdit={(key, value) => setHeaderEdit(JSON.stringify({ ...safeParseJSON(headerEdit), [key]: value }, null, 2))} />
-                    </div>
-                    </div>
-              {/* Payload Edit Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">PAYLOAD: DATA</span>
-                  <Button size="sm" variant="ghost" onClick={() => setPayloadEdit('{}')}>CLEAR</Button>
-                    </div>
-                <div className="px-6 py-4">
-                  <Textarea value={payloadEdit} onChange={e => setPayloadEdit(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[120px]" />
-                  <ClaimsTable data={safeParseJSON(payloadEdit)} editable onEdit={(key, value) => setPayloadEdit(JSON.stringify({ ...safeParseJSON(payloadEdit), [key]: value }, null, 2))} />
-                    </div>
-              </div>
-              {/* Secret Edit Card */}
-              <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">SIGN JWT: SECRET</span>
-                  <Button size="sm" variant="ghost" onClick={() => setSecret('')}>CLEAR</Button>
-                    </div>
-                <div className="px-6 py-4">
-                  <Textarea placeholder="Secret" value={secret} onChange={e => setSecret(e.target.value)} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
-                  <div className="flex gap-2 mt-4">
-                    <Button onClick={handleEdit} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode (unsigned)</Button>
-                    <Button onClick={handleEditAndSign} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode & Sign</Button>
+      <ToolTabs
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabChange={setActiveTabId}
+        onTabAdd={addTab}
+        onTabClose={closeTab}
+        onTabRename={renameTab}
+        renderTabContent={(tab) => {
+          const {
+            tab: currentTab,
+            headerTab: currentHeaderTab,
+            payloadTab: currentPayloadTab,
+            token,
+            decoded,
+            error,
+            headerEdit,
+            payloadEdit,
+            algorithm,
+            secret,
+            publicKey,
+            privateKey,
+            validationResult,
+          } = tab.state;
+
+          return (
+            <div className="w-[98vw] max-w-[1500px] mx-auto flex flex-col gap-8 py-8 px-0">
+              <JWTTabs value={currentTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, tab: val }))} className="w-full">
+                <JWTTabsList>
+                  <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
+                  <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
+                </JWTTabsList>
+                <JWTTabsContent value="decode" className="flex flex-row gap-8 w-full">
+                  {/* Left: JWT Input */}
+                  <div className="flex-1">
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
+                          <Button size="sm" variant="ghost" onClick={clearAll}>CLEAR</Button>
                         </div>
                       </div>
+                      {decoded && <div className="bg-[#eafaf1] text-[#217a3c] px-6 py-2 text-sm border-b border-[#e5e7eb]">Valid JWT</div>}
+                      {validationResult && <div className={`px-6 py-2 text-sm border-b border-[#e5e7eb] ${validationResult.includes('valid') ? 'bg-[#eafaf1] text-[#217a3c]' : 'bg-[#fbeaea] text-[#b94a48]'}`}>{validationResult}</div>}
+                      {error && <div className="bg-[#fbeaea] text-[#b94a48] px-6 py-2 text-sm border-b border-[#e5e7eb]">{error}</div>}
+                      <div className="px-6 py-4 flex flex-col gap-4">
+                        <CodeMirror
+                          value={token}
+                          onChange={val => updateTabState(tab.id, (state) => ({ ...state, token: val }))}
+                          extensions={[jwtColorExtension(), EditorView.lineWrapping]}
+                          basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
+                          className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
+                        />
+                        <div className="flex justify-end">
+                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={decodeToken}>Decode</Button>
                         </div>
-                      </div>
-            {/* Right: Encoded JWT Card */}
-            <div className="flex-1">
-              <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                  <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN</span>
-                  <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
-                </div>
-                <div className="px-6 py-4 flex-1">
-                  <CodeMirror
-                    value={token}
-                    readOnly
-                    extensions={[jwtColorExtension(), EditorView.lineWrapping]}
-                    basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
-                    className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
-                  />
                       </div>
                     </div>
                   </div>
-          </JWTTabsContent>
-        </JWTTabs>
-      </div>
-        </div>
+                  {/* Right: Decoded Info */}
+                  <div className="flex-1 flex flex-col gap-6">
+                    {/* Header Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED HEADER</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.header || {}))}>COPY</Button>
+                      </div>
+                      <div className="px-6 py-4">
+                        <Tabs value={currentHeaderTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, headerTab: val }))} className="w-full">
+                          <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
+                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
+                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value="json">
+                            <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                          </TabsContent>
+                          <TabsContent value="claims">
+                            {decoded?.header ? <ClaimsTable data={decoded.header} /> : <div className="text-[#a67c52] italic">No claims</div>}
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    </div>
+                    {/* Payload Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED PAYLOAD</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.payload || {}))}>COPY</Button>
+                      </div>
+                      <div className="px-6 py-4">
+                        <Tabs value={currentPayloadTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, payloadTab: val }))} className="w-full">
+                          <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
+                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
+                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value="json">
+                            <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                          </TabsContent>
+                          <TabsContent value="claims">
+                            {decoded?.payload ? <ClaimsTable data={decoded.payload} /> : <div className="text-[#a67c52] italic">No claims</div>}
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    </div>
+                    {/* Signature Validation Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">JWT SIGNATURE VERIFICATION <span className="text-[#888] text-base font-normal">(OPTIONAL)</span></span>
+                      </div>
+                      <div className="px-6 py-4 flex flex-col gap-2">
+                        <label className="text-base font-semibold mb-1">SECRET</label>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(secret)}>COPY</Button>
+                          <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, secret: "" }))}>CLEAR</Button>
+                        </div>
+                        <Textarea placeholder="Secret" value={secret} onChange={e => updateTabState(tab.id, (state) => ({ ...state, secret: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
+                        <Button onClick={handleValidate} variant="default" className="bg-[#2d1c0f] hover:bg-[#444] w-fit mt-2">Validate</Button>
+                      </div>
+                    </div>
+                  </div>
+                </JWTTabsContent>
+                <JWTTabsContent value="edit" className="flex flex-row gap-8 w-full">
+                  {/* Left: Edit Header/Payload */}
+                  <div className="flex-1 flex flex-col gap-6">
+                    {/* Header Edit Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">HEADER: ALGORITHM & TOKEN TYPE</span>
+                        <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, headerEdit: '{}' }))}>CLEAR</Button>
+                      </div>
+                      <div className="px-6 py-4">
+                        <Textarea value={headerEdit} onChange={e => updateTabState(tab.id, (state) => ({ ...state, headerEdit: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[80px]" />
+                        <ClaimsTable data={safeParseJSON(headerEdit)} editable onEdit={(key, value) => updateTabState(tab.id, (state) => ({ ...state, headerEdit: JSON.stringify({ ...safeParseJSON(headerEdit), [key]: value }, null, 2) }))} />
+                      </div>
+                    </div>
+                    {/* Payload Edit Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">PAYLOAD: DATA</span>
+                        <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, payloadEdit: '{}' }))}>CLEAR</Button>
+                      </div>
+                      <div className="px-6 py-4">
+                        <Textarea value={payloadEdit} onChange={e => updateTabState(tab.id, (state) => ({ ...state, payloadEdit: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded min-h-[120px]" />
+                        <ClaimsTable data={safeParseJSON(payloadEdit)} editable onEdit={(key, value) => updateTabState(tab.id, (state) => ({ ...state, payloadEdit: JSON.stringify({ ...safeParseJSON(payloadEdit), [key]: value }, null, 2) }))} />
+                      </div>
+                    </div>
+                    {/* Secret Edit Card */}
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">SIGN JWT: SECRET</span>
+                        <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, secret: "" }))}>CLEAR</Button>
+                      </div>
+                      <div className="px-6 py-4">
+                        <Textarea placeholder="Secret" value={secret} onChange={e => updateTabState(tab.id, (state) => ({ ...state, secret: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
+                        <div className="flex gap-2 mt-4">
+                          <Button onClick={handleEdit} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode (unsigned)</Button>
+                          <Button onClick={handleEditAndSign} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode & Sign</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Right: Encoded JWT Card */}
+                  <div className="flex-1">
+                    <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
+                      <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
+                        <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
+                      </div>
+                      <div className="px-6 py-4 flex-1">
+                        <CodeMirror
+                          value={token}
+                          readOnly
+                          extensions={[jwtColorExtension(), EditorView.lineWrapping]}
+                          basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
+                          className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </JWTTabsContent>
+              </JWTTabs>
+            </div>
+          );
+        }}
+      />
+    </div>
   );
 }
