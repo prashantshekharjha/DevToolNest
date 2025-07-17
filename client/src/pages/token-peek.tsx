@@ -14,6 +14,7 @@ import { Decoration, DecorationSet } from '@codemirror/view';
 import ReactJson from 'react-json-view';
 import { ToolTabs, ToolTab } from "@/components/ui/ToolTabs";
 import { v4 as uuidv4 } from "uuid";
+import { useTokenPeekTabsStore, TokenPeekTabsState } from '@/lib/toolTabsStore';
 
 const ALGORITHMS = [
   { label: 'HS256 (HMAC)', value: 'HS256' },
@@ -160,31 +161,31 @@ const DEFAULT_TAB_STATE = {
 
 export default function TokenPeek() {
   const { toast } = useToast();
-  const [tabs, setTabs] = useState<ToolTab<typeof DEFAULT_TAB_STATE>[]>([
-    { id: uuidv4(), title: 'Tab 1', state: { ...DEFAULT_TAB_STATE } },
-  ]);
-  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+  const tabs = useTokenPeekTabsStore((s: TokenPeekTabsState) => s.tabs);
+  const setTabs = useTokenPeekTabsStore((s: TokenPeekTabsState) => s.setTabs);
+  const activeTabId = useTokenPeekTabsStore((s: TokenPeekTabsState) => s.activeTabId);
+  const setActiveTabId = useTokenPeekTabsStore((s: TokenPeekTabsState) => s.setActiveTabId);
 
   // Tab actions
   const addTab = () => {
-    const newTab = { id: uuidv4(), title: `Tab ${tabs.length + 1}`, state: { ...DEFAULT_TAB_STATE } };
-    setTabs((prev) => [...prev, newTab]);
+    const newTab: ToolTab<typeof DEFAULT_TAB_STATE> = { id: uuidv4(), title: `Tab ${tabs.length + 1}`, state: { ...DEFAULT_TAB_STATE } };
+    setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
   const closeTab = (id: string) => {
-    let idx = tabs.findIndex((t) => t.id === id);
+    let idx = tabs.findIndex((t: ToolTab<typeof DEFAULT_TAB_STATE>) => t.id === id);
     if (tabs.length === 1) return; // Don't close last tab
-    const newTabs = tabs.filter((t) => t.id !== id);
+    const newTabs = tabs.filter((t: ToolTab<typeof DEFAULT_TAB_STATE>) => t.id !== id);
     setTabs(newTabs);
     if (activeTabId === id) {
       setActiveTabId(newTabs[Math.max(0, idx - 1)].id);
     }
   };
   const renameTab = (id: string, title: string) => {
-    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)));
+    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, title } : t)));
   };
   const updateTabState = (id: string, updater: (state: typeof DEFAULT_TAB_STATE) => typeof DEFAULT_TAB_STATE) => {
-    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
+    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
   };
 
   const activeTab = tabs.find((t) => t.id === activeTabId)!;

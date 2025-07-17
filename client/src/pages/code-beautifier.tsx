@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import Editor from "@monaco-editor/react";
 import { ToolTabs, ToolTab } from "@/components/ui/ToolTabs";
 import { v4 as uuidv4 } from "uuid";
+import { useCodeBeautifierTabsStore } from '@/lib/toolTabsStore';
 
 const LANGUAGES = [
   { label: 'JSON', value: 'json', ext: 'json', mime: 'application/json' },
@@ -170,31 +171,31 @@ const DEFAULT_TAB_STATE = {
 
 export default function CodeBeautifier() {
   const { toast } = useToast();
-  const [tabs, setTabs] = useState<ToolTab<typeof DEFAULT_TAB_STATE>[]>([
-    { id: uuidv4(), title: 'Tab 1', state: { ...DEFAULT_TAB_STATE } },
-  ]);
-  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+  const tabs = useCodeBeautifierTabsStore((s: import("@/lib/toolTabsStore").CodeBeautifierTabsState) => s.tabs);
+  const setTabs = useCodeBeautifierTabsStore((s: import("@/lib/toolTabsStore").CodeBeautifierTabsState) => s.setTabs);
+  const activeTabId = useCodeBeautifierTabsStore((s: import("@/lib/toolTabsStore").CodeBeautifierTabsState) => s.activeTabId);
+  const setActiveTabId = useCodeBeautifierTabsStore((s: import("@/lib/toolTabsStore").CodeBeautifierTabsState) => s.setActiveTabId);
 
   // Tab actions
   const addTab = () => {
-    const newTab = { id: uuidv4(), title: `Tab ${tabs.length + 1}`, state: { ...DEFAULT_TAB_STATE } };
-    setTabs((prev) => [...prev, newTab]);
+    const newTab: ToolTab<typeof DEFAULT_TAB_STATE> = { id: uuidv4(), title: `Tab ${tabs.length + 1}`, state: { ...DEFAULT_TAB_STATE } };
+    setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
   const closeTab = (id: string) => {
-    let idx = tabs.findIndex((t) => t.id === id);
+    let idx = tabs.findIndex((t: ToolTab<typeof DEFAULT_TAB_STATE>) => t.id === id);
     if (tabs.length === 1) return; // Don't close last tab
-    const newTabs = tabs.filter((t) => t.id !== id);
+    const newTabs = tabs.filter((t: ToolTab<typeof DEFAULT_TAB_STATE>) => t.id !== id);
     setTabs(newTabs);
     if (activeTabId === id) {
       setActiveTabId(newTabs[Math.max(0, idx - 1)].id);
     }
   };
   const renameTab = (id: string, title: string) => {
-    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)));
+    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, title } : t)));
   };
   const updateTabState = (id: string, updater: (state: typeof DEFAULT_TAB_STATE) => typeof DEFAULT_TAB_STATE) => {
-    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
+    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
   };
 
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
@@ -379,7 +380,7 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 min-h-0 h-full">
                     <Editor
                       height="100%"
                       language={language}
@@ -480,11 +481,11 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 min-h-0 h-full">
                     <Editor
                       height="100%"
                       language={language}
-                    value={output}
+                      value={output}
                       theme="vs-light"
                       options={{
                         minimap: { enabled: false },
