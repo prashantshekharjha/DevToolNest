@@ -147,7 +147,8 @@ const DEFAULT_TAB_STATE = {
   tab: "decode",
   headerTab: "json",
   payloadTab: "json",
-  token: "",
+  decodeToken: "",
+  encodeToken: "",
   decoded: null as any,
   error: "",
   headerEdit: "",
@@ -193,7 +194,8 @@ export default function TokenPeek() {
     tab,
     headerTab,
     payloadTab,
-    token,
+    decodeToken,
+    encodeToken,
     decoded,
     error,
     headerEdit,
@@ -208,7 +210,7 @@ export default function TokenPeek() {
   // Auto-decode when switching to the decode tab
   useEffect(() => {
     if (tab === 'decode') {
-      decodeToken();
+      handleDecodeToken();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -216,26 +218,26 @@ export default function TokenPeek() {
   // Always restore token from localStorage on mount
   useEffect(() => {
     const last = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (last && !token) updateTabState(activeTabId, (state) => ({ ...state, token: last }));
-  }, [activeTabId, token]);
+    if (last && !decodeToken) updateTabState(activeTabId, (state) => ({ ...state, decodeToken: last }));
+  }, [activeTabId, decodeToken]);
   useEffect(() => {
     // Always save token to localStorage when changed
-    if (token) localStorage.setItem(LOCAL_STORAGE_KEY, token);
-  }, [token]);
+    if (decodeToken) localStorage.setItem(LOCAL_STORAGE_KEY, decodeToken);
+  }, [decodeToken]);
 
   // Decode JWT
-  const decodeToken = () => {
+  const handleDecodeToken = () => {
     updateTabState(activeTabId, (state) => {
       const newState = { ...state };
       newState.error = "";
       newState.decoded = null;
       newState.validationResult = null;
-      if (!token.trim()) {
+      if (!decodeToken.trim()) {
         newState.error = "Please enter a JWT token";
         return newState;
       }
       try {
-        const parts = token.split(".");
+        const parts = decodeToken.split(".");
         if (parts.length !== 3) throw new Error("Invalid JWT format");
         const header = JSON.parse(decodeBase64Url(parts[0]));
         const payload = JSON.parse(decodeBase64Url(parts[1]));
@@ -260,10 +262,10 @@ export default function TokenPeek() {
         const payload = safeParseJSON(payloadEdit);
         const base64 = (obj: any) => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         // Preserve signature if present
-        const parts = token.split('.');
+        const parts = decodeToken.split('.');
         const signature = parts.length === 3 ? parts[2] : '';
         const newToken = `${base64(header)}.${base64(payload)}.${signature}`;
-        newState.token = newToken;
+        newState.encodeToken = newToken;
         newState.decoded = { header, payload, signature };
         toast({ title: "Token updated (unsigned)" });
         return newState;
@@ -298,7 +300,7 @@ export default function TokenPeek() {
       }
       updateTabState(activeTabId, (state) => {
         const newState = { ...state };
-        newState.token = newToken;
+        newState.encodeToken = newToken;
         newState.decoded = null;
         return newState;
       });
@@ -312,7 +314,7 @@ export default function TokenPeek() {
   const handleValidate = async () => {
     try {
       let key;
-      if (!token.trim()) {
+      if (!decodeToken.trim()) {
         updateTabState(activeTabId, (state) => ({ ...state, validationResult: "No token to validate" }));
         return;
       }
@@ -325,7 +327,7 @@ export default function TokenPeek() {
       } else {
         throw new Error('Unsupported algorithm');
       }
-      await jwtVerify(token, key);
+      await jwtVerify(decodeToken, key);
       updateTabState(activeTabId, (state) => ({ ...state, validationResult: 'Signature is valid!' }));
     } catch (e) {
       updateTabState(activeTabId, (state) => ({ ...state, validationResult: (e as Error).message || 'Signature validation failed' }));
@@ -340,7 +342,8 @@ export default function TokenPeek() {
   const clearAll = () => {
     updateTabState(activeTabId, (state) => {
       const newState = { ...state };
-      newState.token = "";
+      newState.decodeToken = "";
+      newState.encodeToken = "";
       newState.decoded = null;
       newState.error = "";
       newState.headerEdit = "";
@@ -354,7 +357,7 @@ export default function TokenPeek() {
     });
   };
 
-  const jwtParts = token.split('.')
+  const jwtParts = decodeToken.split('.')
   const headerPart = jwtParts[0] || ''
   const payloadPart = jwtParts[1] || ''
   const signaturePart = jwtParts[2] || ''
@@ -392,7 +395,8 @@ export default function TokenPeek() {
             tab: currentTab,
             headerTab: currentHeaderTab,
             payloadTab: currentPayloadTab,
-            token,
+            decodeToken,
+            encodeToken,
             decoded,
             error,
             headerEdit,
@@ -418,7 +422,7 @@ export default function TokenPeek() {
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                         <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
+                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(decodeToken)}>COPY</Button>
                           <Button size="sm" variant="ghost" onClick={clearAll}>CLEAR</Button>
                         </div>
                       </div>
@@ -427,14 +431,14 @@ export default function TokenPeek() {
                       {error && <div className="bg-[#fbeaea] text-[#b94a48] px-6 py-2 text-sm border-b border-[#e5e7eb]">{error}</div>}
                       <div className="px-6 py-4 flex flex-col gap-4">
                         <CodeMirror
-                          value={token}
-                          onChange={val => updateTabState(tab.id, (state) => ({ ...state, token: val }))}
+                          value={decodeToken}
+                          onChange={val => updateTabState(tab.id, (state) => ({ ...state, decodeToken: val }))}
                           extensions={[jwtColorExtension(), EditorView.lineWrapping]}
                           basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
                           className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
                         />
                         <div className="flex justify-end">
-                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={decodeToken}>Decode</Button>
+                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={handleDecodeToken}>Decode</Button>
                         </div>
                       </div>
                     </div>
@@ -545,11 +549,11 @@ export default function TokenPeek() {
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                         <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN</span>
-                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(token)}>COPY</Button>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(encodeToken)}>COPY</Button>
                       </div>
                       <div className="px-6 py-4 flex-1">
                         <CodeMirror
-                          value={token}
+                          value={encodeToken}
                           readOnly
                           extensions={[jwtColorExtension(), EditorView.lineWrapping]}
                           basicSetup={{ lineNumbers: false, highlightActiveLine: false }}

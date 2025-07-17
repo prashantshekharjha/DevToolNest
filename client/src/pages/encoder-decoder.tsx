@@ -234,7 +234,6 @@ export default function EncoderDecoder() {
     if (last) {
       try {
         const data = JSON.parse(last);
-        // This useEffect is now per-tab, so we need to find the tab and update its state
         const tabToUpdate = tabs.find(t => t.id === data.tabId);
         if (tabToUpdate) {
           updateTabState(tabToUpdate.id, (state) => ({
@@ -242,7 +241,6 @@ export default function EncoderDecoder() {
             input: data.input || '',
             activeMethod: data.method || 'base64',
             operation: data.operation || 'encode',
-            // Set the category based on the method
             activeCategory: ENCRYPTION_METHODS.find(m => m.id === data.method)?.category || 'basic',
           }));
         }
@@ -250,7 +248,7 @@ export default function EncoderDecoder() {
         console.error('Error loading saved data:', e);
       }
     }
-  }, [tabs]); // Add tabs to dependency array
+  }, []); // <-- Only run on mount
 
   useEffect(() => {
     const data = { tabId: activeTabId, input: activeTab.state.input, method: activeTab.state.activeMethod, operation: activeTab.state.operation };
@@ -637,8 +635,12 @@ export default function EncoderDecoder() {
                                   : "hover:bg-gray-100"
                               }`}
                               onClick={() => {
-                                updateTabState(tab.id, (state) => ({ ...state, activeMethod: method.id }));
-                                updateTabState(tab.id, (state) => ({ ...state, activeCategory: method.category }));
+                                updateTabState(tab.id, (state) => ({
+                                  ...state,
+                                  activeMethod: method.id,
+                                  activeCategory: method.category,
+                                  ...(method.category === 'hash' ? { operation: 'encode' } : {})
+                                }));
                               }}
                             >
                               <method.icon className="w-5 h-5" />
@@ -663,11 +665,12 @@ export default function EncoderDecoder() {
                                   : "hover:bg-gray-100"
                               }`}
                               onClick={() => {
-                                updateTabState(tab.id, (state) => ({ ...state, activeMethod: method.id }));
-                                updateTabState(tab.id, (state) => ({ ...state, activeCategory: method.category }));
-                                if (method.category === 'hash') {
-                                  updateTabState(tab.id, (state) => ({ ...state, operation: 'encode' }));
-                                }
+                                updateTabState(tab.id, (state) => ({
+                                  ...state,
+                                  activeMethod: method.id,
+                                  activeCategory: method.category,
+                                  ...(method.category === 'hash' ? { operation: 'encode' } : {})
+                                }));
                               }}
                             >
                               <method.icon className="w-5 h-5" />
@@ -692,8 +695,12 @@ export default function EncoderDecoder() {
                                   : "hover:bg-gray-100"
                               }`}
                               onClick={() => {
-                                updateTabState(tab.id, (state) => ({ ...state, activeMethod: method.id }));
-                                updateTabState(tab.id, (state) => ({ ...state, activeCategory: method.category }));
+                                updateTabState(tab.id, (state) => ({
+                                  ...state,
+                                  activeMethod: method.id,
+                                  activeCategory: method.category,
+                                  ...(method.category === 'hash' ? { operation: 'encode' } : {})
+                                }));
                               }}
                             >
                               <method.icon className="w-5 h-5" />
@@ -718,8 +725,12 @@ export default function EncoderDecoder() {
                                   : "hover:bg-gray-100"
                               }`}
                               onClick={() => {
-                                updateTabState(tab.id, (state) => ({ ...state, activeMethod: method.id }));
-                                updateTabState(tab.id, (state) => ({ ...state, activeCategory: method.category }));
+                                updateTabState(tab.id, (state) => ({
+                                  ...state,
+                                  activeMethod: method.id,
+                                  activeCategory: method.category,
+                                  ...(method.category === 'hash' ? { operation: 'encode' } : {})
+                                }));
                               }}
                             >
                               <method.icon className="w-5 h-5" />
@@ -903,7 +914,7 @@ export default function EncoderDecoder() {
                           <div className="space-y-2 w-full">
                             <Label htmlFor="aes-mode">AES Mode</Label>
                             <div className="w-full">
-                              <Select value={tab.state.aesMode} onValueChange={setAesMode => updateTabState(tab.id, (state) => ({ ...state, aesMode: setAesMode }))}>
+                              <Select value={tab.state.aesMode} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesMode: val }))}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
@@ -920,7 +931,7 @@ export default function EncoderDecoder() {
                           <div className="space-y-2 w-full">
                             <Label htmlFor="aes-padding">Padding</Label>
                             <div className="w-full">
-                              <Select value={tab.state.aesPadding} onValueChange={setAesPadding => updateTabState(tab.id, (state) => ({ ...state, aesPadding: setAesPadding }))}>
+                              <Select value={tab.state.aesPadding} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesPadding: val }))}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
@@ -942,10 +953,10 @@ export default function EncoderDecoder() {
               </Card>
 
               {/* Input/Output */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0 flex-1">
                 {/* Input */}
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="h-full min-h-0 flex-1 flex flex-col">
+                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-green-600" />
@@ -961,7 +972,7 @@ export default function EncoderDecoder() {
                         value={tab.state.input}
                         onChange={(e) => updateTabState(tab.id, (state) => ({ ...state, input: e.target.value }))}
                         placeholder={`Enter text to ${tab.state.operation}...`}
-                        className="min-h-[200px] font-mono"
+                        className="min-h-[200px] font-mono h-full min-h-0 flex-1"
                       />
                       
                       <div className="flex gap-2">
@@ -977,8 +988,8 @@ export default function EncoderDecoder() {
                 </Card>
 
                 {/* Output */}
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="h-full min-h-0 flex-1 flex flex-col">
+                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Code className="w-5 h-5 text-blue-600" />
@@ -996,7 +1007,7 @@ export default function EncoderDecoder() {
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="min-h-[200px] p-3 border rounded-md bg-muted/30 font-mono text-sm whitespace-pre-wrap overflow-auto">
+                      <div className="min-h-[200px] p-3 border rounded-md bg-muted/30 font-mono text-sm whitespace-pre-wrap overflow-auto h-full min-h-0 flex-1">
                         {tab.state.output || 'Output will appear here...'}
                       </div>
                       
