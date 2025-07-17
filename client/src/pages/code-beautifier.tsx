@@ -217,14 +217,15 @@ export default function CodeBeautifier() {
     // eslint-disable-next-line
   }, [activeTabId, activeTab.state.input, activeTab.state.language]);
 
-  const handleFormat = () => {
+  const handleFormat = (modeOverride?: 'beautify' | 'minify') => {
+    const currentMode = modeOverride || mode;
     updateTabState(activeTabId, (state) => ({ ...state, error: '' }));
     try {
-      const formatted = mode === 'beautify' ? beautify(input, language) : minify(input, language);
+      const formatted = currentMode === 'beautify' ? beautify(input, language) : minify(input, language);
       updateTabState(activeTabId, (state) => ({ ...state, output: formatted }));
       toast({
-        title: mode === 'beautify' ? 'Beautified!' : 'Minified!',
-        description: `Your ${language.toUpperCase()} has been ${mode === 'beautify' ? 'beautified' : 'minified'}.`,
+        title: currentMode === 'beautify' ? 'Beautified!' : 'Minified!',
+        description: `Your ${language.toUpperCase()} has been ${currentMode === 'beautify' ? 'beautified' : 'minified'}.`,
       });
     } catch (e: any) {
       updateTabState(activeTabId, (state) => ({ ...state, error: (e && e.message) || 'Failed to format content', output: '' }));
@@ -291,8 +292,9 @@ export default function CodeBeautifier() {
           } = tab.state;
           return (
             <div className="flex flex-col h-full min-h-0">
-              {/* Header */}
-              <div className="flex-shrink-0 bg-white dark:bg-[#2d2d2d] border-b border-gray-200 dark:border-gray-700 p-4">
+              {/* Header - always visible, floats above maximized editor */}
+              <div className={`flex-shrink-0 bg-white dark:bg-[#2d2d2d] border-b border-gray-200 dark:border-gray-700 p-4 z-50 ${maximized !== 'none' ? 'fixed top-0 left-0 w-full shadow-lg' : ''}`}
+                style={maximized !== 'none' ? { position: 'fixed', top: 0, left: 0, width: '100vw' } : {}}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Code Beautifier</h1>
@@ -309,7 +311,7 @@ export default function CodeBeautifier() {
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4" />
                               {lang.label}
-        </div>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -319,13 +321,15 @@ export default function CodeBeautifier() {
                     </Button>
                     <Button variant="outline" onClick={() => updateTabState(tab.id, state => ({ ...state, fontSize: Math.max(12, state.fontSize - 2) }))}>
                       A-
-                  </Button>
+                    </Button>
                     <Button variant="outline" onClick={() => updateTabState(tab.id, state => ({ ...state, fontSize: Math.min(32, state.fontSize + 2) }))}>
                       A+
-                  </Button>
+                    </Button>
                   </div>
                 </div>
               </div>
+              {/* Add padding to top of maximized editor so content is not hidden behind header */}
+              {maximized !== 'none' && <div style={{ height: 80 }} />}
               {showTemplates && (
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-[#3a3a3a] rounded-lg">
                   <div className="flex items-center justify-between mb-3">
@@ -380,7 +384,7 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0 h-full overflow-hidden max-h-[calc(100vh-200px)] min-h-[200px]">
+                  <div className={`flex-1 min-h-0 h-full overflow-hidden min-h-[200px] ${maximized === 'input' ? '' : 'max-h-[calc(100vh-300px)]'}` }>
                     <Editor
                       height="100%"
                       language={language}
@@ -427,18 +431,18 @@ export default function CodeBeautifier() {
                   <div className="w-56 bg-gray-50 dark:bg-[#3a3a3a] border-l border-gray-200 dark:border-gray-700 p-4 flex flex-col gap-4 min-h-0 h-full overflow-y-auto">
                   <div className="space-y-3">
             <Button
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                      onClick={() => { updateTabState(tab.id, state => ({ ...state, mode: 'beautify', error: '' })); handleFormat(); }}
-                      disabled={!validation.valid || isProcessing}
-                    >
-                      <Wand2 className="w-5 h-5 mr-2" />Beautify
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+              onClick={() => { updateTabState(tab.id, state => ({ ...state, mode: 'beautify', error: '' })); handleFormat('beautify'); }}
+              disabled={!validation.valid || isProcessing}
+            >
+              <Wand2 className="w-5 h-5 mr-2" />Beautify
             </Button>
             <Button
-                      className="w-full h-12 bg-gray-800 hover:bg-gray-900 text-white font-semibold"
-                      onClick={() => { updateTabState(tab.id, state => ({ ...state, mode: 'minify', error: '' })); handleFormat(); }}
-                      disabled={!validation.valid || isProcessing}
-                    >
-                      <Minimize2 className="w-5 h-5 mr-2" />Minify
+              className="w-full h-12 bg-gray-800 hover:bg-gray-900 text-white font-semibold"
+              onClick={() => { updateTabState(tab.id, state => ({ ...state, mode: 'minify', error: '' })); handleFormat('minify'); }}
+              disabled={!validation.valid || isProcessing}
+            >
+              <Minimize2 className="w-5 h-5 mr-2" />Minify
             </Button>
           </div>
                   <div className="space-y-2">
@@ -481,7 +485,7 @@ export default function CodeBeautifier() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0 h-full overflow-hidden max-h-[calc(100vh-200px)] min-h-[200px]">
+                  <div className={`flex-1 min-h-0 h-full overflow-hidden min-h-[200px] ${maximized === 'output' ? '' : 'max-h-[calc(100vh-300px)]'}` }>
                     <Editor
                       height="100%"
                       language={language}

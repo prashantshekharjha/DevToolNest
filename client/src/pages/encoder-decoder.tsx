@@ -790,7 +790,7 @@ export default function EncoderDecoder() {
                           onChange={e => updateTabState(tab.id, (state) => ({ ...state, rsaPublicKey: e.target.value }))}
                           placeholder="Paste or generate a public key (PEM)"
                           rows={6}
-                          className="font-mono"
+                          className="font-mono max-h-40"
                         />
                         <div className="flex gap-2 mt-1">
                           <Button size="sm" variant="outline" onClick={() => copyToClipboard(tab.state.rsaPublicKey)} disabled={!tab.state.rsaPublicKey}>Copy</Button>
@@ -804,7 +804,7 @@ export default function EncoderDecoder() {
                           onChange={e => updateTabState(tab.id, (state) => ({ ...state, rsaPrivateKey: e.target.value }))}
                           placeholder="Paste or generate a private key (PEM)"
                           rows={6}
-                          className="font-mono"
+                          className="font-mono max-h-40"
                         />
                         <div className="flex gap-2 mt-1">
                           <Button size="sm" variant="outline" onClick={() => copyToClipboard(tab.state.rsaPrivateKey)} disabled={!tab.state.rsaPrivateKey}>Copy</Button>
@@ -832,14 +832,19 @@ export default function EncoderDecoder() {
                         try {
                           await new Promise(resolve => setTimeout(resolve, 100)); // allow UI update
                           forge.pki.rsa.generateKeyPair({bits: tab.state.rsaKeySize, workers: -1}, (err, keypair) => {
-                            updateTabState(tab.id, (state) => ({ ...state, rsaGenerating: false }));
-                            if (err) {
-                              toast({ title: 'Key generation error', description: String(err), variant: 'destructive' });
-                              return;
-                            }
-                            updateTabState(tab.id, (state) => ({ ...state, rsaPublicKey: forge.pki.publicKeyToPem(keypair.publicKey) }));
-                            updateTabState(tab.id, (state) => ({ ...state, rsaPrivateKey: forge.pki.privateKeyToPem(keypair.privateKey) }));
-                            toast({ title: 'Key pair generated', description: 'RSA key pair generated successfully' });
+                            updateTabState(tab.id, (state) => {
+                              if (err) {
+                                toast({ title: 'Key generation error', description: String(err), variant: 'destructive' });
+                                return { ...state, rsaGenerating: false };
+                              }
+                              toast({ title: 'Key pair generated', description: 'RSA key pair generated successfully' });
+                              return {
+                                ...state,
+                                rsaGenerating: false,
+                                rsaPublicKey: forge.pki.publicKeyToPem(keypair.publicKey),
+                                rsaPrivateKey: forge.pki.privateKeyToPem(keypair.privateKey),
+                              };
+                            });
                           });
                         } catch (e) {
                           updateTabState(tab.id, (state) => ({ ...state, rsaGenerating: false }));
@@ -1007,7 +1012,7 @@ export default function EncoderDecoder() {
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="min-h-[200px] p-3 border rounded-md bg-muted/30 font-mono text-sm whitespace-pre-wrap overflow-auto h-full min-h-0 flex-1">
+                      <div className="min-h-[200px] p-3 border rounded-md bg-muted/30 font-mono text-sm whitespace-pre-wrap overflow-auto h-full min-h-0 flex-1 break-all">
                         {tab.state.output || 'Output will appear here...'}
                       </div>
                       

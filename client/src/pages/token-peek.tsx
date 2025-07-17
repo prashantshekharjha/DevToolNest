@@ -118,7 +118,7 @@ function ClaimsTable({ data, editable, onEdit }: { data: Record<string, any>, ed
               <td className={`py-1 pr-4 font-mono text-sm align-top ${keyColorClass}`}>
                 <span title={CLAIM_TOOLTIPS[key] || ''} className={CLAIM_TOOLTIPS[key] ? 'underline decoration-dotted cursor-help' : ''}>{key}</span>
               </td>
-              <td className="py-1 text-sm text-[#222] align-top">
+              <td className="py-1 text-sm text-[#222] align-top break-all">
                 {isTimestamp ? (
                   <span title={valueTooltip} className="underline decoration-dotted cursor-help">{value}</span>
                 ) : (
@@ -409,15 +409,15 @@ export default function TokenPeek() {
           } = tab.state;
 
           return (
-            <div className="w-[98vw] max-w-[1500px] mx-auto flex flex-col gap-8 py-8 px-0">
+            <div className="w-full max-w-[1800px] mx-auto flex flex-col gap-8 py-8 px-4 md:px-8">
               <JWTTabs value={currentTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, tab: val }))} className="w-full">
                 <JWTTabsList>
                   <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
                   <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
                 </JWTTabsList>
-                <JWTTabsContent value="decode" className="flex flex-row gap-8 w-full">
+                <JWTTabsContent value="decode" className="flex flex-row gap-12 w-full justify-center items-stretch">
                   {/* Left: JWT Input */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-[400px] max-w-[800px]">
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                         <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
@@ -458,7 +458,7 @@ export default function TokenPeek() {
                             <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
                           </TabsList>
                           <TabsContent value="json">
-                            <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                            <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
                           </TabsContent>
                           <TabsContent value="claims">
                             {decoded?.header ? <ClaimsTable data={decoded.header} /> : <div className="text-[#a67c52] italic">No claims</div>}
@@ -479,7 +479,7 @@ export default function TokenPeek() {
                             <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
                           </TabsList>
                           <TabsContent value="json">
-                            <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                            <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
                           </TabsContent>
                           <TabsContent value="claims">
                             {decoded?.payload ? <ClaimsTable data={decoded.payload} /> : <div className="text-[#a67c52] italic">No claims</div>}
@@ -504,9 +504,9 @@ export default function TokenPeek() {
                     </div>
                   </div>
                 </JWTTabsContent>
-                <JWTTabsContent value="edit" className="flex flex-row gap-8 w-full">
+                <JWTTabsContent value="edit" className="flex flex-row gap-12 w-full justify-center items-stretch">
                   {/* Left: Edit Header/Payload */}
-                  <div className="flex-1 flex flex-col gap-6">
+                  <div className="flex-1 min-w-[400px] max-w-[800px] flex flex-col gap-6">
                     {/* Header Edit Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
@@ -545,7 +545,7 @@ export default function TokenPeek() {
                     </div>
                   </div>
                   {/* Right: Encoded JWT Card */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-[400px] max-w-[800px]">
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                         <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN</span>
