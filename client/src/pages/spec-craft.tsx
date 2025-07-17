@@ -18,6 +18,8 @@ import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import * as yaml from 'js-yaml';
 import { Label } from '@/components/ui/label';
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
 
 interface Collection {
   id: string;
@@ -39,558 +41,19 @@ interface ParsedEndpoint {
   security?: any;
 }
 
-// Remove swagger-ui-react imports and usage
-// Add CDN-based Swagger UI preview component
-function SwaggerCDNPreview({ spec }) {
-  const ref = useRef(null);
+export default function SpecCraft() {
+  const [specYaml, setSpecYaml] = useState(`openapi: 3.0.3\ninfo:\n  title: Sample API\n  version: 1.0.0\n  description: A sample API to demonstrate OpenAPI specifications\n  contact:\n    name: API Support\n    email: support@example.com\n  license:\n    name: MIT\n    url: https://opensource.org/licenses/MIT\nservers:\n  - url: https://api.example.com/v1\n    description: Production server\n  - url: https://staging-api.example.com/v1\n    description: Staging server\npaths:\n  /auth/signup:\n    post:\n      tags:\n        - Authentication\n      summary: Create new user account\n      description: Register a new user account with email and password\n      operationId: signup\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserSignup'\n            examples:\n              valid_signup:\n                summary: Valid signup request\n                value:\n                  email: \"user@example.com\"\n                  password: \"strongpassword123\"\n                  name: \"John Doe\"\n      responses:\n        '201':\n          description: User created successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/AuthResponse'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '409':\n          description: User already exists\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /auth/login:\n    post:\n      tags:\n        - Authentication\n      summary: User login\n      description: Authenticate user with email and password\n      operationId: login\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserLogin'\n            examples:\n              valid_login:\n                summary: Valid login request\n                value:\n                  email: \"user@example.com\"\n                  password: \"strongpassword123\"\n      responses:\n        '200':\n          description: Login successful\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/AuthResponse'\n        '401':\n          description: Invalid credentials\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /users/profile:\n    get:\n      tags:\n        - Users\n      summary: Get user profile\n      description: Retrieve the current user's profile information\n      operationId: getUserProfile\n      security:\n        - bearerAuth: []\n      responses:\n        '200':\n          description: User profile retrieved successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/UserProfile'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n    put:\n      tags:\n        - Users\n      summary: Update user profile\n      description: Update the current user's profile information\n      operationId: updateUserProfile\n      security:\n        - bearerAuth: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserProfileUpdate'\n            examples:\n              update_profile:\n                summary: Update profile request\n                value:\n                  name: \"John Smith\"\n                  bio: \"Software developer\"\n                  website: \"https://johnsmith.dev\"\n      responses:\n        '200':\n          description: Profile updated successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/UserProfile'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /products:\n    get:\n      tags:\n        - Products\n      summary: List products\n      description: Retrieve a list of products with optional filtering\n      operationId: getProducts\n      parameters:\n        - name: category\n          in: query\n          description: Filter by product category\n          required: false\n          schema:\n            type: string\n        - name: limit\n          in: query\n          description: Number of products to return\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n            maximum: 100\n            default: 20\n        - name: page\n          in: query\n          description: Page number for pagination\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n            default: 1\n      responses:\n        '200':\n          description: Products retrieved successfully\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  products:\n                    type: array\n                    items:\n                      $ref: '#/components/schemas/Product'\n                  pagination:\n                    $ref: '#/components/schemas/Pagination'\n        '400':\n          description: Invalid request parameters\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n    post:\n      tags:\n        - Products\n      summary: Create new product\n      description: Create a new product (admin only)\n      operationId: createProduct\n      security:\n        - bearerAuth: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/ProductCreate'\n            examples:\n              new_product:\n                summary: New product request\n                value:\n                  name: \"Wireless Headphones\"\n                  description: \"High-quality wireless headphones with noise cancellation\"\n                  price: 199.99\n                  category: \"Electronics\"\n                  stock: 50\n      responses:\n        '201':\n          description: Product created successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Product'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '403':\n          description: Forbidden (admin required)\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /products/{id}:\n    get:\n      tags:\n        - Products\n      summary: Get product by ID\n      description: Retrieve a specific product by its ID\n      operationId: getProductById\n      parameters:\n        - name: id\n          in: path\n          description: Product ID\n          required: true\n          schema:\n            type: string\n      responses:\n        '200':\n          description: Product retrieved successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Product'\n        '404':\n          description: Product not found\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\ncomponents:\n  schemas:\n    UserSignup:\n      type: object\n      required:\n        - email\n        - password\n        - name\n      properties:\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        password:\n          type: string\n          minLength: 8\n          description: User password (minimum 8 characters)\n          example: \"strongpassword123\"\n        name:\n          type: string\n          description: User full name\n          example: \"John Doe\"\n    UserLogin:\n      type: object\n      required:\n        - email\n        - password\n      properties:\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        password:\n          type: string\n          description: User password\n          example: \"strongpassword123\"\n    AuthResponse:\n      type: object\n      properties:\n        success:\n          type: boolean\n          description: Operation success status\n          example: true\n        message:\n          type: string\n          description: Response message\n          example: \"Authentication successful\"\n        data:\n          type: object\n          properties:\n            user:\n              $ref: '#/components/schemas/UserProfile'\n            token:\n              type: string\n              description: JWT access token\n              example: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n            refreshToken:\n              type: string\n              description: JWT refresh token\n              example: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n    UserProfile:\n      type: object\n      properties:\n        id:\n          type: string\n          description: User ID\n          example: \"user_123\"\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        name:\n          type: string\n          description: User full name\n          example: \"John Doe\"\n        bio:\n          type: string\n          description: User biography\n          example: \"Software developer\"\n        website:\n          type: string\n          format: uri\n          description: User website URL\n          example: \"https://johnsmith.dev\"\n        createdAt:\n          type: string\n          format: date-time\n          description: Account creation timestamp\n          example: \"2023-01-01T00:00:00Z\"\n        updatedAt:\n          type: string\n          format: date-time\n          description: Last update timestamp\n          example: \"2023-01-01T00:00:00Z\"\n    UserProfileUpdate:\n      type: object\n      properties:\n        name:\n          type: string\n          description: User full name\n          example: \"John Smith\"\n        bio:\n          type: string\n          description: User biography\n          example: \"Software developer\"\n        website:\n          type: string\n          format: uri\n          description: User website URL\n          example: \"https://johnsmith.dev\"\n    Product:\n      type: object\n      properties:\n        id:\n          type: string\n          description: Product ID\n          example: \"prod_123\"\n        name:\n          type: string\n          description: Product name\n          example: \"Wireless Headphones\"\n        description:\n          type: string\n          description: Product description\n          example: \"High-quality wireless headphones with noise cancellation\"\n        price:\n          type: number\n          format: float\n          description: Product price\n          example: 199.99\n        category:\n          type: string\n          description: Product category\n          example: \"Electronics\"\n        stock:\n          type: integer\n          description: Available stock quantity\n          example: 50\n        createdAt:\n          type: string\n          format: date-time\n          description: Product creation timestamp\n          example: \"2023-01-01T00:00:00Z\"\n        updatedAt:\n          type: string\n          format: date-time\n          description: Last update timestamp\n          example: \"2023-01-01T00:00:00Z\"\n    ProductCreate:\n      type: object\n      required:\n        - name\n        - description\n        - price\n        - category\n        - stock\n      properties:\n        name:\n          type: string\n          description: Product name\n          example: \"Wireless Headphones\"\n        description:\n          type: string\n          description: Product description\n          example: \"High-quality wireless headphones with noise cancellation\"\n        price:\n          type: number\n          format: float\n          minimum: 0\n          description: Product price\n          example: 199.99\n        category:\n          type: string\n          description: Product category\n          example: \"Electronics\"\n        stock:\n          type: integer\n          minimum: 0\n          description: Available stock quantity\n          example: 50\n    Pagination:\n      type: object\n      properties:\n        page:\n          type: integer\n          description: Current page number\n          example: 1\n        limit:\n          type: integer\n          description: Number of items per page\n          example: 20\n        total:\n          type: integer\n          description: Total number of items\n          example: 100\n        totalPages:\n          type: integer\n          description: Total number of pages\n          example: 5\n    ErrorResponse:\n      type: object\n      properties:\n        success:\n          type: boolean\n          description: Operation success status\n          example: false\n        message:\n          type: string\n          description: Error message\n          example: \"The email field is required\"\n        error:\n          type: string\n          description: Detailed error description\n          example: \"The email field is required\"\n        code:\n          type: integer\n          description: Error code\n          example: 400\n      required:\n        - success\n        - message\n        - error\n        - code\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT`);
+  const [specObj, setSpecObj] = useState<any>(null);
 
   useEffect(() => {
-    if (!spec) return;
-    if (ref.current) ref.current.innerHTML = '';
-    // Add Swagger UI CSS from CDN
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/swagger-ui-dist/swagger-ui.css';
-    document.head.appendChild(link);
-    // Inject custom CSS to hide Swagger UI topbar
-    const style = document.createElement('style');
-    style.innerHTML = `.swagger-ui .topbar { display: none !important; }`;
-    document.head.appendChild(style);
-    // Load Swagger UI from CDN
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js';
-    script.onload = () => {
-      if (window.SwaggerUIBundle) {
-        window.SwaggerUIBundle({
-          spec,
-          dom_id: '#swagger-ui',
-          deepLinking: true,
-          displayOperationId: true,
-          displayRequestDuration: true
-        });
-      }
-    };
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-      document.head.removeChild(style);
-      document.head.removeChild(link);
-    };
-  }, [spec]);
+    try {
+      const obj = yaml.load(specYaml);
+      setSpecObj(obj);
+    } catch (e) {
+      setSpecObj(null);
+    }
+  }, [specYaml]);
 
-  return <div id="swagger-ui" ref={ref} style={{ width: '100%', height: '80vh', background: 'white' }} />;
-}
-
-export default function SpecCraft() {
-  const [spec, setSpec] = useState(`openapi: 3.0.3
-info:
-  title: Sample API
-  version: 1.0.0
-  description: A sample API to demonstrate OpenAPI specifications
-  contact:
-    name: API Support
-    email: support@example.com
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-servers:
-  - url: https://api.example.com/v1
-    description: Production server
-  - url: https://staging-api.example.com/v1
-    description: Staging server
-paths:
-  /auth/signup:
-    post:
-      tags:
-        - Authentication
-      summary: Create new user account
-      description: Register a new user account with email and password
-      operationId: signup
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserSignup'
-            examples:
-              valid_signup:
-                summary: Valid signup request
-                value:
-                  email: "user@example.com"
-                  password: "strongpassword123"
-                  name: "John Doe"
-      responses:
-        '201':
-          description: User created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: User already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /auth/login:
-    post:
-      tags:
-        - Authentication
-      summary: User login
-      description: Authenticate user with email and password
-      operationId: login
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserLogin'
-            examples:
-              valid_login:
-                summary: Valid login request
-                value:
-                  email: "user@example.com"
-                  password: "strongpassword123"
-      responses:
-        '200':
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /users/profile:
-    get:
-      tags:
-        - Users
-      summary: Get user profile
-      description: Retrieve the current user's profile information
-      operationId: getUserProfile
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: User profile retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    put:
-      tags:
-        - Users
-      summary: Update user profile
-      description: Update the current user's profile information
-      operationId: updateUserProfile
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserProfileUpdate'
-            examples:
-              update_profile:
-                summary: Update profile request
-                value:
-                  name: "John Smith"
-                  bio: "Software developer"
-                  website: "https://johnsmith.dev"
-      responses:
-        '200':
-          description: Profile updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /products:
-    get:
-      tags:
-        - Products
-      summary: List products
-      description: Retrieve a list of products with optional filtering
-      operationId: getProducts
-      parameters:
-        - name: category
-          in: query
-          description: Filter by product category
-          required: false
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Number of products to return
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: page
-          in: query
-          description: Page number for pagination
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-      responses:
-        '200':
-          description: Products retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  products:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Product'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-        '400':
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    post:
-      tags:
-        - Products
-      summary: Create new product
-      description: Create a new product (admin only)
-      operationId: createProduct
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProductCreate'
-            examples:
-              new_product:
-                summary: New product request
-                value:
-                  name: "Wireless Headphones"
-                  description: "High-quality wireless headphones with noise cancellation"
-                  price: 199.99
-                  category: "Electronics"
-                  stock: 50
-      responses:
-        '201':
-          description: Product created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Product'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden (admin required)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /products/{id}:
-    get:
-      tags:
-        - Products
-      summary: Get product by ID
-      description: Retrieve a specific product by its ID
-      operationId: getProductById
-      parameters:
-        - name: id
-          in: path
-          description: Product ID
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Product retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Product'
-        '404':
-          description: Product not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-components:
-  schemas:
-    UserSignup:
-      type: object
-      required:
-        - email
-        - password
-        - name
-      properties:
-        email:
-          type: string
-          format: email
-          description: User email address
-          example: "user@example.com"
-        password:
-          type: string
-          minLength: 8
-          description: User password (minimum 8 characters)
-          example: "strongpassword123"
-        name:
-          type: string
-          description: User full name
-          example: "John Doe"
-    UserLogin:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          description: User email address
-          example: "user@example.com"
-        password:
-          type: string
-          description: User password
-          example: "strongpassword123"
-    AuthResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          description: Operation success status
-          example: true
-        message:
-          type: string
-          description: Response message
-          example: "Authentication successful"
-        data:
-          type: object
-          properties:
-            user:
-              $ref: '#/components/schemas/UserProfile'
-            token:
-              type: string
-              description: JWT access token
-              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            refreshToken:
-              type: string
-              description: JWT refresh token
-              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    UserProfile:
-      type: object
-      properties:
-        id:
-          type: string
-          description: User ID
-          example: "user_123"
-        email:
-          type: string
-          format: email
-          description: User email address
-          example: "user@example.com"
-        name:
-          type: string
-          description: User full name
-          example: "John Doe"
-        bio:
-          type: string
-          description: User biography
-          example: "Software developer"
-        website:
-          type: string
-          format: uri
-          description: User website URL
-          example: "https://johnsmith.dev"
-        createdAt:
-          type: string
-          format: date-time
-          description: Account creation timestamp
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          type: string
-          format: date-time
-          description: Last update timestamp
-          example: "2023-01-01T00:00:00Z"
-    UserProfileUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-          description: User full name
-          example: "John Smith"
-        bio:
-          type: string
-          description: User biography
-          example: "Software developer"
-        website:
-          type: string
-          format: uri
-          description: User website URL
-          example: "https://johnsmith.dev"
-    Product:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Product ID
-          example: "prod_123"
-        name:
-          type: string
-          description: Product name
-          example: "Wireless Headphones"
-        description:
-          type: string
-          description: Product description
-          example: "High-quality wireless headphones with noise cancellation"
-        price:
-          type: number
-          format: float
-          description: Product price
-          example: 199.99
-        category:
-          type: string
-          description: Product category
-          example: "Electronics"
-        stock:
-          type: integer
-          description: Available stock quantity
-          example: 50
-        createdAt:
-          type: string
-          format: date-time
-          description: Product creation timestamp
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          type: string
-          format: date-time
-          description: Last update timestamp
-          example: "2023-01-01T00:00:00Z"
-    ProductCreate:
-      type: object
-      required:
-        - name
-        - description
-        - price
-        - category
-        - stock
-      properties:
-        name:
-          type: string
-          description: Product name
-          example: "Wireless Headphones"
-        description:
-          type: string
-          description: Product description
-          example: "High-quality wireless headphones with noise cancellation"
-        price:
-          type: number
-          format: float
-          minimum: 0
-          description: Product price
-          example: 199.99
-        category:
-          type: string
-          description: Product category
-          example: "Electronics"
-        stock:
-          type: integer
-          minimum: 0
-          description: Available stock quantity
-          example: 50
-    Pagination:
-      type: object
-      properties:
-        page:
-          type: integer
-          description: Current page number
-          example: 1
-        limit:
-          type: integer
-          description: Number of items per page
-          example: 20
-        total:
-          type: integer
-          description: Total number of items
-          example: 100
-        totalPages:
-          type: integer
-          description: Total number of pages
-          example: 5
-    ErrorResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          description: Operation success status
-          example: false
-        message:
-          type: string
-          description: Error message
-          example: "The email field is required"
-        error:
-          type: string
-          description: Detailed error description
-          example: "The email field is required"
-        code:
-          type: integer
-          description: Error code
-          example: 400
-      required:
-        - success
-        - message
-        - error
-        - code
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT`);
-
-  const [parsedSpec, setParsedSpec] = useState<any>(null);
   const [isValidSpec, setIsValidSpec] = useState(true);
   const [parseError, setParseError] = useState<string>('');
   const [theme, setTheme] = useState('github');
@@ -686,42 +149,42 @@ components:
   // Parse spec when it changes
   useEffect(() => {
     try {
-      const parsed = yaml.load(spec) as any;
-      setParsedSpec(parsed);
+      const parsed = yaml.load(specYaml) as any;
+      setSpecObj(parsed);
       setIsValidSpec(true);
       setParseError('');
     } catch (error) {
       setIsValidSpec(false);
       setParseError(error.message);
-      setParsedSpec(null);
+      setSpecObj(null);
     }
-  }, [spec]);
+  }, [specYaml]);
 
   // Initialize server selection
   useEffect(() => {
-    if (parsedSpec?.servers?.[0]?.url) {
-      setSelectedServer(parsedSpec.servers[0].url);
+    if (specObj?.servers?.[0]?.url) {
+      setSelectedServer(specObj.servers[0].url);
     }
-  }, [parsedSpec]);
+  }, [specObj]);
 
   // Save spec to storage when it changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      storage.saveToolData('spec-craft', { spec });
+      storage.saveToolData('spec-craft', { spec: specYaml });
     }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [spec]);
+  }, [specYaml]);
 
   // Load saved spec from storage
   useEffect(() => {
     const savedSpec = storage.getToolData('spec-craft');
     if (savedSpec?.spec) {
-      setSpec(savedSpec.spec);
+      setSpecYaml(savedSpec.spec);
     }
   }, []);
 
   const handleSpecChange = useCallback((newSpec: string) => {
-    setSpec(newSpec);
+    setSpecYaml(newSpec);
   }, []);
 
   // Extract endpoints from spec
@@ -756,7 +219,7 @@ components:
     // Handle $ref references
     if (schema.$ref) {
       const refPath = schema.$ref.replace('#/', '').split('/');
-      let refSchema = parsedSpec;
+      let refSchema = specObj;
       for (const segment of refPath) {
         refSchema = refSchema?.[segment];
       }
@@ -836,12 +299,12 @@ components:
     }
 
     return null;
-  }, [parsedSpec]);
+  }, [specObj]);
 
   // Generate detailed cURL command
   const generateDetailedCurl = useCallback((endpoint: ParsedEndpoint, serverUrl?: string, token?: string, headers?: string) => {
     console.log('Generating cURL for endpoint:', endpoint);
-    const baseUrl = serverUrl || parsedSpec?.servers?.[0]?.url || 'https://api.example.com';
+    const baseUrl = serverUrl || specObj?.servers?.[0]?.url || 'https://api.example.com';
     const method = endpoint.method;
     let path = endpoint.path;
     
@@ -853,7 +316,7 @@ components:
         // Resolve parameter reference
         if (param.$ref) {
           const refPath = param.$ref.replace('#/', '').split('/');
-          let refParam = parsedSpec;
+          let refParam = specObj;
           for (const segment of refPath) {
             refParam = refParam?.[segment];
           }
@@ -872,13 +335,13 @@ components:
     let curl = `curl -X ${method} "${baseUrl}${path}"`;
     
     // Add authentication header from security requirements
-    const globalSecurity = parsedSpec?.security;
+    const globalSecurity = specObj?.security;
     const operationSecurity = endpoint.security || globalSecurity;
     
     if (operationSecurity && operationSecurity.length > 0) {
       const securityScheme = operationSecurity[0];
       const schemeName = Object.keys(securityScheme)[0];
-      const scheme = parsedSpec?.components?.securitySchemes?.[schemeName];
+      const scheme = specObj?.components?.securitySchemes?.[schemeName];
       
       if (scheme?.type === 'http' && scheme?.scheme === 'bearer') {
         curl += ` \\\n  -H "Authorization: Bearer ${token || '{your-token}'}"`;
@@ -901,7 +364,7 @@ components:
         // Resolve parameter reference
         if (param.$ref) {
           const refPath = param.$ref.replace('#/', '').split('/');
-          let refParam = parsedSpec;
+          let refParam = specObj;
           for (const segment of refPath) {
             refParam = refParam?.[segment];
           }
@@ -961,7 +424,7 @@ components:
         // Resolve parameter reference
         if (param.$ref) {
           const refPath = param.$ref.replace('#/', '').split('/');
-          let refParam = parsedSpec;
+          let refParam = specObj;
           for (const segment of refPath) {
             refParam = refParam?.[segment];
           }
@@ -1043,7 +506,7 @@ components:
     }
     
     return curl;
-  }, [parsedSpec, generateExampleFromSchema]);
+  }, [specObj, generateExampleFromSchema]);
 
   // Handle single cURL generation
   const handleGenerateCurl = useCallback((endpoint: ParsedEndpoint) => {
@@ -1055,9 +518,9 @@ components:
 
   // Handle bulk cURL generation
   const handleGenerateBulkCurl = useCallback(() => {
-    if (!parsedSpec?.paths) return;
+    if (!specObj?.paths) return;
     
-    const endpoints = extractEndpointsFromSpec(parsedSpec);
+    const endpoints = extractEndpointsFromSpec(specObj);
     // Group endpoints by first tag (or 'Untagged')
     const grouped: Record<string, ParsedEndpoint[]> = {};
     endpoints.forEach(endpoint => {
@@ -1078,11 +541,11 @@ components:
     });
     setBulkCurlCommands(commands);
     setShowBulkCurlDialog(true);
-  }, [parsedSpec, extractEndpointsFromSpec, generateDetailedCurl, selectedServer, authToken, customHeaders]);
+  }, [specObj, extractEndpointsFromSpec, generateDetailedCurl, selectedServer, authToken, customHeaders]);
 
   // Convert to ReqNest format
   const convertToReqNestFormat = useCallback((endpoint: ParsedEndpoint, serverUrl?: string) => {
-    const baseUrl = serverUrl || parsedSpec?.servers?.[0]?.url || 'https://api.example.com';
+    const baseUrl = serverUrl || specObj?.servers?.[0]?.url || 'https://api.example.com';
     let path = endpoint.path;
     
     // Replace path parameters
@@ -1106,7 +569,7 @@ components:
         // Resolve parameter reference
         if (param.$ref) {
           const refPath = param.$ref.replace('#/', '').split('/');
-          let refParam = parsedSpec;
+          let refParam = specObj;
           for (const segment of refPath) {
             refParam = refParam?.[segment];
           }
@@ -1227,7 +690,7 @@ components:
     };
     
     return reqNestData;
-  }, [parsedSpec, authToken, customHeaders, generateExampleFromSchema]);
+  }, [specObj, authToken, customHeaders, generateExampleFromSchema]);
 
   // Handle ReqNest integration
   const handleOpenInReqNest = useCallback((endpoint?: ParsedEndpoint) => {
@@ -1244,9 +707,9 @@ components:
 
   const handleOpenBulkInReqNest = useCallback(() => {
     setShowBulkCurlDialog(false); // Close bulk cURL dialog if open
-    if (!parsedSpec?.paths) return;
+    if (!specObj?.paths) return;
     
-    const endpoints = extractEndpointsFromSpec(parsedSpec);
+    const endpoints = extractEndpointsFromSpec(specObj);
     
     // Group endpoints by resource (first path segment)
     const resourceGroups = new Map<string, ParsedEndpoint[]>();
@@ -1295,18 +758,18 @@ components:
     
     const collection = {
       id: `collection-${Date.now()}`,
-      name: parsedSpec.info?.title || 'API Collection',
+      name: specObj.info?.title || 'API Collection',
       requests: requests,
       createdAt: new Date(),
       updatedAt: new Date(),
-      description: parsedSpec.info?.description || 'Generated from OpenAPI specification'
+      description: specObj.info?.description || 'Generated from OpenAPI specification'
     };
     
     // Set bulk import state and show the save to collection dialog in SpecCraft first
     setIsBulkImport(true);
     setBulkImportCollection(collection);
     setShowSaveToCollectionDialog(true);
-  }, [parsedSpec, extractEndpointsFromSpec, convertToReqNestFormat, selectedServer]);
+  }, [specObj, extractEndpointsFromSpec, convertToReqNestFormat, selectedServer]);
 
   const handleCopyCurl = useCallback((curlCommand: string) => {
     navigator.clipboard.writeText(curlCommand);
@@ -1326,7 +789,7 @@ components:
   }, [bulkCurlCommands]);
 
   const handleExportSpec = useCallback(() => {
-    const blob = new Blob([spec], { type: 'application/yaml' });
+    const blob = new Blob([specYaml], { type: 'application/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1340,11 +803,11 @@ components:
       title: "Success",
       description: "API specification exported successfully",
     });
-  }, [spec]);
+  }, [specYaml]);
 
   // Replace "Try it out" buttons with cURL buttons using CSS injection
   useEffect(() => {
-    if (!parsedSpec || !parsedSpec.paths) return;
+    if (!specObj || !specObj.paths) return;
 
     const addCurlButtons = () => {
       // Find all operation blocks
@@ -1379,7 +842,7 @@ components:
           
           if (operationId) {
             // Find the matching path and operation in the spec
-            for (const [specPath, pathItem] of Object.entries(parsedSpec.paths)) {
+            for (const [specPath, pathItem] of Object.entries(specObj.paths)) {
               const operation = pathItem[method.toLowerCase()];
               if (operation && operation.operationId === operationId) {
                 apiPath = specPath;
@@ -1392,7 +855,7 @@ components:
         
         // If we still don't have a path, try to get it from the spec using the first available path for this method
         if (!apiPath) {
-          for (const [specPath, pathItem] of Object.entries(parsedSpec.paths)) {
+          for (const [specPath, pathItem] of Object.entries(specObj.paths)) {
             if (pathItem[method.toLowerCase()]) {
               apiPath = specPath;
               operationInfo = pathItem[method.toLowerCase()];
@@ -1404,8 +867,8 @@ components:
         if (!apiPath) return;
         
         // Get operation info if we don't have it already
-        if (!operationInfo && parsedSpec.paths[apiPath]) {
-          operationInfo = parsedSpec.paths[apiPath][method.toLowerCase()];
+        if (!operationInfo && specObj.paths[apiPath]) {
+          operationInfo = specObj.paths[apiPath][method.toLowerCase()];
         }
         
         // Create cURL button
@@ -1440,7 +903,7 @@ components:
             parameters: operationInfo?.parameters || [],
             requestBody: operationInfo?.requestBody,
             responses: operationInfo?.responses || {},
-            security: operationInfo?.security || parsedSpec.security
+            security: operationInfo?.security || specObj.security
           };
           
           handleGenerateCurl(endpoint);
@@ -1476,7 +939,7 @@ components:
       clearTimeout(timer3);
       observer.disconnect();
     };
-  }, [parsedSpec, handleGenerateCurl]);
+  }, [specObj, handleGenerateCurl]);
 
   // Initialize BroadcastChannel for ReqNest integration
   useEffect(() => {
@@ -1702,7 +1165,7 @@ components:
                 mode="yaml"
                 theme={theme}
                 onChange={handleSpecChange}
-                value={spec}
+                value={specYaml}
                 name="yaml-editor"
                 width="100%"
                 height="100%"
@@ -1749,8 +1212,8 @@ components:
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">API Preview</h3>
             </div>
             <div className="flex-1 overflow-auto min-h-0">
-              {isValidSpec && parsedSpec ? (
-                <SwaggerCDNPreview spec={parsedSpec} />
+              {isValidSpec && specObj ? (
+                <SwaggerUI spec={specObj} />
               ) : (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   {parseError ? (
@@ -1792,7 +1255,7 @@ components:
                     <SelectValue placeholder="Select server" />
                   </SelectTrigger>
                   <SelectContent>
-                    {parsedSpec?.servers?.map((server, index) => (
+                    {specObj?.servers?.map((server, index) => (
                       <SelectItem key={index} value={server.url}>
                         {server.url} - {server.description}
                       </SelectItem>
@@ -1869,7 +1332,7 @@ components:
                     <SelectValue placeholder="Select server" />
                   </SelectTrigger>
                   <SelectContent>
-                    {parsedSpec?.servers?.map((server, index) => (
+                    {specObj?.servers?.map((server, index) => (
                       <SelectItem key={index} value={server.url}>
                         {server.url} - {server.description}
                       </SelectItem>
