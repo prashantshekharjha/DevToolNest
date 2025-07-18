@@ -1153,6 +1153,28 @@ export default function SpecCraft() {
     };
   }, [localFontSize, isValidSpec, specObj]);
 
+  // Aggressively force font size for Swagger UI textareas, code, etc.
+  useEffect(() => {
+    const updateFontSize = () => {
+      document.querySelectorAll('.swagger-ui textarea, .swagger-ui pre, .swagger-ui code, .swagger-ui input, .swagger-ui select')
+        .forEach(el => {
+          (el as HTMLElement).style.fontSize = localFontSize + 'px';
+          (el as HTMLElement).style.fontFamily = 'inherit';
+        });
+    };
+    updateFontSize();
+    // MutationObserver to re-apply on DOM changes
+    const root = document.querySelector('.swagger-ui');
+    let observer: MutationObserver | null = null;
+    if (root) {
+      observer = new MutationObserver(updateFontSize);
+      observer.observe(root, { childList: true, subtree: true });
+    }
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [localFontSize]);
+
   return (
     <div className={isFullscreen
       ? "fixed inset-0 z-[9999] bg-white w-screen h-screen font-sans"
@@ -1258,10 +1280,15 @@ export default function SpecCraft() {
             className="flex-1 min-w-0 bg-white overflow-auto"
             style={{ width: isMobile ? '100%' : `calc(100% - ${splitPosition}%)`, fontSize: localFontSize }}
           >
-            {/* Add a style tag to override Swagger UI font size */}
+            {/* Only override font size for Swagger UI textareas and code blocks, not all elements */}
             <style>{`
-              .swagger-ui, .swagger-ui * {
+              .swagger-ui textarea,
+              .swagger-ui pre,
+              .swagger-ui code,
+              .swagger-ui input,
+              .swagger-ui select {
                 font-size: ${localFontSize}px !important;
+                font-family: inherit !important;
               }
             `}</style>
             {specObj && isValidSpec ? (
