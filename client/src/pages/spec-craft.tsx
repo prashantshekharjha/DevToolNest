@@ -1274,6 +1274,12 @@ export default function SpecCraft() {
               style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize, height: '100%' }}
             />
           </div>
+          {/* Draggable Divider */}
+          <div
+            className="cursor-col-resize w-2 bg-[#f3f3f3] hover:bg-[#e0e0e0] transition-colors duration-150 h-full z-10"
+            style={{ minWidth: 8, maxWidth: 12 }}
+            onMouseDown={handleMouseDown}
+          />
           {/* API Preview */}
           <div
             className="flex-1 min-w-0 bg-white overflow-auto h-full"
