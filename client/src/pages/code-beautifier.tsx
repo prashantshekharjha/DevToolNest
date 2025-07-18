@@ -8,6 +8,8 @@ import Editor from "@monaco-editor/react";
 import { ToolTabs, ToolTab } from "@/components/ui/ToolTabs";
 import { v4 as uuidv4 } from "uuid";
 import { useCodeBeautifierTabsStore } from '@/lib/toolTabsStore';
+import JSON5 from 'json5';
+import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 
 const LANGUAGES = [
   { label: 'JSON', value: 'json', ext: 'json', mime: 'application/json' },
@@ -48,29 +50,66 @@ function beautify(content: string, lang: string): string {
     const trimmed = content.trim();
     if (!trimmed) return '';
     switch (lang) {
-      case 'json':
-        return JSON.stringify(JSON.parse(trimmed), null, 2);
+      case 'json': {
+        try {
+          // Try strict JSON first
+          return JSON.stringify(JSON.parse(trimmed), null, 2);
+        } catch (strictErr) {
+          // Try tolerant JSON5 parsing
+          try {
+            const parsed = JSON5.parse(trimmed);
+            // Show warning if not valid JSON
+            toast({
+              title: 'Warning',
+              description: 'Input is not valid JSON, but was parsed as JSON5 (tolerant mode).',
+              variant: 'destructive',
+            });
+            return JSON.stringify(parsed, null, 2);
+          } catch (json5Err) {
+            throw new Error('Invalid JSON: ' + (json5Err && json5Err.message));
+          }
+        }
+      }
       case 'yaml': {
-      const yaml = require('js-yaml');
+        const yaml = require('js-yaml');
         return yaml.dump(yaml.load(trimmed), { indent: 2 });
       }
       case 'xml': {
-        const parser = new window.DOMParser();
-        const xmlDoc = parser.parseFromString(trimmed, 'application/xml');
-        if (xmlDoc.getElementsByTagName('parsererror').length > 0) throw new Error('Invalid XML');
-        const serializer = new window.XMLSerializer();
-      let xmlString = serializer.serializeToString(xmlDoc);
-      xmlString = xmlString.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
-      let formatted = '';
-      let pad = 0;
-      xmlString.split('\n').forEach((node) => {
-        let indent = 0;
-        if (node.match(/^<\//)) pad -= 2;
-        else if (node.match(/^<[^!?]/) && !node.match(/\/>$/)) indent = 2;
-          formatted += ' '.repeat(Math.max(0, pad)) + node + '\n';
-        pad += indent;
-      });
-      return formatted.trim();
+        try {
+          // Try strict DOM parsing first
+          const parser = new window.DOMParser();
+          const xmlDoc = parser.parseFromString(trimmed, 'application/xml');
+          if (xmlDoc.getElementsByTagName('parsererror').length > 0) throw new Error('Invalid XML');
+          const serializer = new window.XMLSerializer();
+          let xmlString = serializer.serializeToString(xmlDoc);
+          xmlString = xmlString.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
+          let formatted = '';
+          let pad = 0;
+          xmlString.split('\n').forEach((node) => {
+            let indent = 0;
+            if (node.match(/^<\//)) pad -= 2;
+            else if (node.match(/^<[^!?]/) && !node.match(/\/>$/)) indent = 2;
+            formatted += ' '.repeat(Math.max(0, pad)) + node + '\n';
+            pad += indent;
+          });
+          return formatted.trim();
+        } catch (strictErr) {
+          // Try tolerant XML parsing with fast-xml-parser
+          try {
+            const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true, parseTagValue: false });
+            const parsed = parser.parse(trimmed);
+            const builder = new XMLBuilder({ format: true, indentBy: '  ', ignoreAttributes: false });
+            const pretty = builder.build(parsed);
+            toast({
+              title: 'Warning',
+              description: 'Input is not valid XML, but was parsed in tolerant mode.',
+              variant: 'destructive',
+            });
+            return pretty;
+          } catch (xmlErr) {
+            throw new Error('Invalid XML: ' + (xmlErr && xmlErr.message));
+          }
+        }
       }
       case 'javascript':
       case 'typescript':

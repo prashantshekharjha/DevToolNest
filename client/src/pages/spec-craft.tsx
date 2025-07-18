@@ -1248,10 +1248,10 @@ export default function SpecCraft() {
         </div>
 
         {/* Split Screen Layout */}
-        <div className="split-container flex w-full flex-1 min-h-0" style={{ height: isFullscreen ? 'calc(100vh - 64px)' : undefined }}>
+        <div className="split-container flex w-full min-h-0" style={{ height: 'calc(100vh - 64px)' }}>
           {/* YAML Editor */}
           <div
-            className="flex flex-col min-w-0 bg-white border-r border-[#e5e7eb]"
+            className="flex flex-col min-w-0 bg-white border-r border-[#e5e7eb] h-full overflow-auto"
             style={{ width: isMobile ? '100%' : `${splitPosition}%` }}
           >
             <AceEditor
@@ -1262,7 +1262,7 @@ export default function SpecCraft() {
               name="spec-yaml-editor"
               fontSize={localFontSize}
               width="100%"
-              height={isFullscreen ? 'calc(100vh - 64px)' : '600px'}
+              height="100%"
               setOptions={{
                 useWorker: false,
                 showLineNumbers: true,
@@ -1271,13 +1271,12 @@ export default function SpecCraft() {
                 showPrintMargin: false,
               }}
               editorProps={{ $blockScrolling: true }}
-              style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize }}
+              style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize, height: '100%' }}
             />
           </div>
-          {/* Resizer ... */}
           {/* API Preview */}
           <div
-            className="flex-1 min-w-0 bg-white overflow-auto"
+            className="flex-1 min-w-0 bg-white overflow-auto h-full"
             style={{ width: isMobile ? '100%' : `calc(100% - ${splitPosition}%)`, fontSize: localFontSize }}
           >
             {/* Only override font size for Swagger UI textareas and code blocks, not all elements */}
@@ -1292,7 +1291,7 @@ export default function SpecCraft() {
               }
             `}</style>
             {specObj && isValidSpec ? (
-              <SwaggerUI spec={specObj} docExpansion="none" style={{ fontSize: localFontSize }} />
+              <SwaggerUI spec={specObj} docExpansion="none" style={{ fontSize: localFontSize, height: '100%' }} />
             ) : (
               <div className="p-8 text-red-600 font-semibold">Invalid OpenAPI/Swagger YAML</div>
             )}
