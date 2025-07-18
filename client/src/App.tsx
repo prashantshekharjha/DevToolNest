@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Pages
 import Home from "@/pages/home";
@@ -24,6 +24,18 @@ import NotFound from "@/pages/not-found";
 function Router() {
   // Track sidebar collapsed/expanded state globally
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Global font size state
+  const [fontSize, setFontSize] = useState(() => {
+    const stored = localStorage.getItem('appFontSize');
+    return stored ? parseInt(stored) : 16;
+  });
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font-size', fontSize + 'px');
+    localStorage.setItem('appFontSize', String(fontSize));
+  }, [fontSize]);
+  const handleFontSizeChange = (delta: number) => {
+    setFontSize(f => Math.max(12, Math.min(32, f + delta)));
+  };
   return (
     <div className="flex">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -32,6 +44,23 @@ function Router() {
           isCollapsed ? 'ml-16' : ''
         }`}
       >
+        <Header
+          title="DevToolNest"
+          right={
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+                onClick={() => handleFontSizeChange(-2)}
+                title="Decrease font size"
+              >A-</button>
+              <button
+                className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+                onClick={() => handleFontSizeChange(2)}
+                title="Increase font size"
+              >A+</button>
+            </div>
+          }
+        />
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/reqnest" component={ReqNest} />

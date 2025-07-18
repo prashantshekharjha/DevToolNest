@@ -464,15 +464,15 @@ export default function TokenPeek() {
           } = tab.state;
 
           return (
-            <div className="w-full max-w-[1800px] mx-auto flex flex-col gap-8 py-8 px-4 md:px-8">
+            <div className="w-full max-w-full mx-auto flex flex-col gap-8 py-8 px-4 md:px-8 min-w-0">
               <JWTTabs value={currentTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, tab: val }))} className="w-full">
                 <JWTTabsList>
                   <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
                   <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
                 </JWTTabsList>
-                <JWTTabsContent value="decode" className="flex flex-row gap-12 w-full justify-center items-stretch">
+                <JWTTabsContent value="decode" className="flex flex-col md:flex-row gap-8 md:gap-12 w-full justify-center items-stretch min-w-0">
                   {/* Left: JWT Input */}
-                  <div className="flex-1 min-w-[400px] max-w-[800px]">
+                  <div className="flex-1 min-w-0 max-w-full">
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
                         <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
@@ -490,7 +490,7 @@ export default function TokenPeek() {
                           onChange={val => updateTabState(tab.id, (state) => ({ ...state, decodeToken: val }))}
                           extensions={[jwtColorExtension(), EditorView.lineWrapping]}
                           basicSetup={{ lineNumbers: false, highlightActiveLine: false }}
-                          className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f]"
+                          className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f] min-w-0"
                         />
                         <div className="flex justify-end">
                           <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={handleDecodeToken}>Decode</Button>
