@@ -651,13 +651,9 @@ export default function EncoderDecoder() {
           return (
             <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Encoder/Decoder
-        </h1>
-        <p className="text-muted-foreground">
-          Comprehensive encryption toolkit for encoding, decoding, hashing, and encrypting data
-        </p>
+      <div className="text-left space-y-2 pl-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Encoder/Decoder</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive encryption toolkit for encoding, decoding, hashing, and encrypting data</p>
       </div>
 
       {/* Method Selection - Always Visible */}
@@ -666,7 +662,7 @@ export default function EncoderDecoder() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
               <Lock className="w-5 h-5 text-gray-600" />
-              <h2 className="text-xl font-semibold">Encryption Method</h2>
+              <h2 className="text-xl font-semibold font-mono">Encryption Method</h2>
             </div>
             
             {/* Category Tabs */}
@@ -808,7 +804,7 @@ export default function EncoderDecoder() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-600" />
-              <h2 className="text-xl font-semibold">Operation</h2>
+              <h2 className="text-xl font-semibold font-mono">Operation</h2>
             </div>
             <div className="flex gap-2">
               <Button
@@ -838,7 +834,7 @@ export default function EncoderDecoder() {
                   {tab.state.activeMethod === 'rsa' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
-                <Label htmlFor="rsa-public">Public Key (PEM)</Label>
+                <Label htmlFor="rsa-public" className="font-mono">Public Key (PEM)</Label>
                 <Textarea
                   id="rsa-public"
                           value={tab.state.rsaPublicKey}
@@ -852,7 +848,7 @@ export default function EncoderDecoder() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rsa-private">Private Key (PEM)</Label>
+                <Label htmlFor="rsa-private" className="font-mono">Private Key (PEM)</Label>
                 <Textarea
                   id="rsa-private"
                           value={tab.state.rsaPrivateKey}
@@ -916,7 +912,7 @@ export default function EncoderDecoder() {
               {/* Encryption Options */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="key">Encryption Key</Label>
+                  <Label htmlFor="key" className="font-mono">Encryption Key</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -941,7 +937,7 @@ export default function EncoderDecoder() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="iv">Initialization Vector (IV)</Label>
+                  <Label htmlFor="iv" className="font-mono">Initialization Vector (IV)</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -972,7 +968,7 @@ export default function EncoderDecoder() {
                       {tab.state.activeMethod === 'aes' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div className="space-y-2 w-full">
-                    <Label htmlFor="aes-mode">AES Mode</Label>
+                    <Label htmlFor="aes-mode" className="font-mono">AES Mode</Label>
                             <div className="w-full">
                               <Select value={tab.state.aesMode} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesMode: val }))}>
                       <SelectTrigger>
@@ -989,7 +985,7 @@ export default function EncoderDecoder() {
                   </div>
                           </div>
                           <div className="space-y-2 w-full">
-                    <Label htmlFor="aes-padding">Padding</Label>
+                    <Label htmlFor="aes-padding" className="font-mono">Padding</Label>
                             <div className="w-full">
                               <Select value={tab.state.aesPadding} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesPadding: val }))}>
                       <SelectTrigger>
@@ -1020,7 +1016,7 @@ export default function EncoderDecoder() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-green-600" />
-                <h2 className="text-xl font-semibold">Input</h2>
+                <h2 className="text-xl font-semibold font-mono">Input</h2>
               </div>
               <Button variant="outline" size="sm" onClick={clearAll}>
                 Clear
@@ -1053,7 +1049,7 @@ export default function EncoderDecoder() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Code className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-semibold">Output</h2>
+                <h2 className="text-xl font-semibold font-mono">Output</h2>
               </div>
               <Button 
                 variant="outline" 

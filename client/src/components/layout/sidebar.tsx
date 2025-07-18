@@ -3,11 +3,24 @@ import { cn } from "@/lib/utils";
 import { tools } from "@/lib/tools";
 import { Settings, Home, Wrench, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (v: boolean) => void }) {
   const [location] = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+
+  // Global font size state
+  const [fontSize, setFontSize] = useState(() => {
+    const stored = localStorage.getItem('appFontSize');
+    return stored ? parseInt(stored) : 16;
+  });
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font-size', fontSize + 'px');
+    localStorage.setItem('appFontSize', String(fontSize));
+  }, [fontSize]);
+  const handleFontSizeChange = (delta: number) => {
+    setFontSize(f => Math.max(12, Math.min(32, f + delta)));
+  };
 
   const isActive = (route: string) => {
     return location === route || (route === "/" && location === "/");
@@ -91,6 +104,23 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean,
 
       {/* Theme Toggle */}
       {/* Removed theme toggle button */}
+      {/* Global Font Size Controls */}
+      <div className="p-4 border-t border-border flex flex-col items-center gap-2">
+        <span className="text-xs text-muted-foreground mb-1">Font Size</span>
+        <div className="flex gap-2">
+          <button
+            className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+            onClick={() => handleFontSizeChange(-2)}
+            title="Decrease font size"
+          >A-</button>
+          <span className="text-base font-medium w-8 text-center" style={{ minWidth: 24 }}>{fontSize}</span>
+          <button
+            className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+            onClick={() => handleFontSizeChange(2)}
+            title="Increase font size"
+          >A+</button>
+        </div>
+      </div>
     </div>
   );
 }

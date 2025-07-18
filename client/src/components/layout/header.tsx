@@ -11,18 +11,14 @@ interface HeaderProps {
 export function Header({ title, subtitle, right }: HeaderProps) {
   return (
     <header className="glass-effect border-b border-border p-4 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            {title}
-          </h2>
+      <div className="block w-full">
+        <div className="text-left pl-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-left">{title}</h2>
           {subtitle && (
-            <p className="text-muted-foreground mt-1">{subtitle}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-left">{subtitle}</p>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          {right}
-        </div>
+        {right && <div className="flex items-center gap-4">{right}</div>}
       </div>
     </header>
   );

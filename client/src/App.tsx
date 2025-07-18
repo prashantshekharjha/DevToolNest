@@ -44,23 +44,6 @@ function Router() {
           isCollapsed ? 'ml-16' : ''
         }`}
       >
-        <Header
-          title="DevToolNest"
-          right={
-            <div className="flex items-center gap-2">
-              <button
-                className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
-                onClick={() => handleFontSizeChange(-2)}
-                title="Decrease font size"
-              >A-</button>
-              <button
-                className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
-                onClick={() => handleFontSizeChange(2)}
-                title="Increase font size"
-              >A+</button>
-            </div>
-          }
-        />
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/reqnest" component={ReqNest} />

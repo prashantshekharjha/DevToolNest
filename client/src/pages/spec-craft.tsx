@@ -79,7 +79,52 @@ export default function SpecCraft() {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  // Font size state for YAML editor and API preview
+  const [fontSize, setFontSize] = useState(() => {
+    const stored = localStorage.getItem('spec-craft-font-size');
+    return stored ? parseInt(stored) : 14;
+  });
+  useEffect(() => {
+    localStorage.setItem('spec-craft-font-size', String(fontSize));
+  }, [fontSize]);
+  const handleFontSizeChange = (delta: number) => {
+    setFontSize(f => Math.max(10, Math.min(32, f + delta)));
+  };
 
+  // Universal font size from CSS variable
+  const getUniversalFontSize = () => {
+    if (typeof window !== 'undefined') {
+      const val = getComputedStyle(document.documentElement).getPropertyValue('--app-font-size');
+      return val ? parseInt(val) : 16;
+    }
+    return 16;
+  };
+  const [universalFontSize, setUniversalFontSize] = useState(getUniversalFontSize());
+  useEffect(() => {
+    const handleFontSizeChange = () => {
+      setUniversalFontSize(getUniversalFontSize());
+    };
+    window.addEventListener('storage', handleFontSizeChange);
+    // Also listen for direct changes (e.g., via setProperty)
+    const observer = new MutationObserver(handleFontSizeChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    return () => {
+      window.removeEventListener('storage', handleFontSizeChange);
+      observer.disconnect();
+    };
+  }, []);
+
+  // Local font size state for YAML editor and API preview
+  const [localFontSize, setLocalFontSize] = useState(() => {
+    const stored = localStorage.getItem('spec-craft-local-font-size');
+    return stored ? parseInt(stored) : 14;
+  });
+  useEffect(() => {
+    localStorage.setItem('spec-craft-local-font-size', String(localFontSize));
+  }, [localFontSize]);
+  const handleLocalFontSizeChange = (delta: number) => {
+    setLocalFontSize(f => Math.max(10, Math.min(32, f + delta)));
+  };
 
   // Handle drag for resizable split
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -133,9 +178,9 @@ export default function SpecCraft() {
       setIsMobile(newIsMobile);
       
       // Force re-render of AceEditor on resize
-      if (window.aceEditor) {
+      if ((window as any).aceEditor) {
         setTimeout(() => {
-          window.aceEditor.resize();
+          (window as any).aceEditor.resize();
         }, 100);
       }
     };
@@ -155,7 +200,7 @@ export default function SpecCraft() {
       setParseError('');
     } catch (error) {
       setIsValidSpec(false);
-      setParseError(error.message);
+      setParseError((error as Error).message);
       setSpecObj(null);
     }
   }, [specYaml]);
@@ -1082,14 +1127,42 @@ export default function SpecCraft() {
     };
   }, []);
 
+  // Make Swagger UI font size follow localFontSize, even after re-renders
+  useEffect(() => {
+    const applySwaggerFontSize = () => {
+      const swaggerRoot = document.querySelector('.swagger-ui');
+      if (swaggerRoot) {
+        (swaggerRoot as HTMLElement).style.setProperty('font-size', `${localFontSize}px`, 'important');
+        swaggerRoot.querySelectorAll('*').forEach(el => {
+          (el as HTMLElement).style.setProperty('font-size', `${localFontSize}px`, 'important');
+        });
+      }
+    };
+    applySwaggerFontSize();
+    // MutationObserver to re-apply font size on DOM changes
+    const swaggerRoot = document.querySelector('.swagger-ui');
+    let observer: MutationObserver | null = null;
+    if (swaggerRoot) {
+      observer = new MutationObserver(() => {
+        applySwaggerFontSize();
+      });
+      observer.observe(swaggerRoot, { childList: true, subtree: true });
+    }
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [localFontSize, isValidSpec, specObj]);
+
   return (
-    <div className={`min-h-screen h-screen flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
-      {!isFullscreen && (
-        <Header 
-          title="SpecCraft" 
-          subtitle="OpenAPI Specification Editor & Documentation Generator"
-        />
-      )}
+    <div className={isFullscreen
+      ? "fixed inset-0 z-[9999] bg-white w-screen h-screen font-sans"
+      : "min-h-screen w-full bg-[#fafafa] flex flex-col items-center font-sans"
+    }>
+      {/* SpecCraft Heading, left-aligned, matching Code Beautifier */}
+      <div className="w-full text-left pl-2 mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SpecCraft</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">OpenAPI Specification Editor & Documentation Generator</p>
+      </div>
       
       <main className={`${isFullscreen ? 'px-2 py-2' : 'w-full h-full py-4'}`}>
         {/* Compact Controls */}
@@ -1105,16 +1178,22 @@ export default function SpecCraft() {
                 <SelectItem value="monokai">Dark</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateBulkCurl}
-              className="h-8"
-            >
-              <Zap className="w-4 h-4 mr-1" />
+            {/* Moved Bulk cURL and font size controls here */}
+            <Button onClick={() => setShowBulkCurlDialog(true)} variant="outline" className="font-semibold">
               Bulk cURL
             </Button>
+            <button
+              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+              onClick={() => handleLocalFontSizeChange(-2)}
+              title="Decrease YAML/API font size"
+            >A-</button>
+            <button
+              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+              onClick={() => handleLocalFontSizeChange(2)}
+              title="Increase YAML/API font size"
+            >A+</button>
           </div>
+          {/* Right group remains unchanged */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -1147,86 +1226,49 @@ export default function SpecCraft() {
         </div>
 
         {/* Split Screen Layout */}
-        <div className={`split-container flex ${isMobile ? 'flex-col' : 'flex-row'} ${isFullscreen ? 'h-[calc(100vh-80px)]' : 'h-[calc(100vh-200px)]'} bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden relative`}>
-          {/* Left Panel - YAML Editor */}
-          <div 
-            className={`${isMobile ? 'h-1/2 border-b' : 'border-r'} border-gray-200 dark:border-gray-700 flex flex-col`}
-            style={!isMobile ? { 
-              width: `${Math.max(25, Math.min(75, splitPosition))}%`,
-              minWidth: '250px',
-              maxWidth: '75%'
-            } : {}}
+        <div className="split-container flex w-full flex-1 min-h-0" style={{ height: isFullscreen ? 'calc(100vh - 64px)' : undefined }}>
+          {/* YAML Editor */}
+          <div
+            className="flex flex-col min-w-0 bg-white border-r border-[#e5e7eb]"
+            style={{ width: isMobile ? '100%' : `${splitPosition}%` }}
           >
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">YAML Editor</h3>
-            </div>
-            <div className="flex-1 min-h-0">
-              <AceEditor
-                mode="yaml"
-                theme={theme}
-                onChange={handleSpecChange}
-                value={specYaml}
-                name="yaml-editor"
-                width="100%"
-                height="100%"
-                fontSize={14}
-                showPrintMargin={false}
-                showGutter={true}
-                highlightActiveLine={true}
-                onLoad={(editor) => {
-                  window.aceEditor = editor;
-                  editor.renderer.setScrollMargin(10, 10);
-                }}
-                setOptions={{
-                  enableBasicAutocompletion: true,
-                  enableLiveAutocompletion: true,
-                  enableSnippets: true,
-                  showLineNumbers: true,
-                  tabSize: 2,
-                  wrap: true,
-                  useWorker: false
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Resizable Divider - Only visible on desktop */}
-          {!isMobile && (
-            <div 
-              className="absolute top-0 bottom-0 w-1 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 cursor-col-resize z-10 transition-colors duration-200"
-              style={{ left: `${Math.max(25, Math.min(75, splitPosition))}%` }}
-              onMouseDown={handleMouseDown}
+            <AceEditor
+              mode="yaml"
+              theme={theme}
+              value={specYaml}
+              onChange={handleSpecChange}
+              name="spec-yaml-editor"
+              fontSize={localFontSize}
+              width="100%"
+              height={isFullscreen ? 'calc(100vh - 64px)' : '600px'}
+              setOptions={{
+                useWorker: false,
+                showLineNumbers: true,
+                tabSize: 2,
+                wrap: true,
+                showPrintMargin: false,
+              }}
+              editorProps={{ $blockScrolling: true }}
+              style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize }}
             />
-          )}
-
-          {/* Right Panel - Swagger Preview */}
-          <div 
-            className={`${isMobile ? 'h-1/2' : 'flex-1'} overflow-hidden flex flex-col`}
-            style={!isMobile ? { 
-              width: `${Math.max(25, Math.min(75, 100 - splitPosition))}%`,
-              minWidth: '250px',
-              maxWidth: '75%'
-            } : {}}
+          </div>
+          {/* Resizer ... */}
+          {/* API Preview */}
+          <div
+            className="flex-1 min-w-0 bg-white overflow-auto"
+            style={{ width: isMobile ? '100%' : `calc(100% - ${splitPosition}%)`, fontSize: localFontSize }}
           >
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">API Preview</h3>
-            </div>
-            <div className="flex-1 overflow-auto min-h-0">
-              {isValidSpec && specObj ? (
-                <SwaggerUI spec={specObj} />
-              ) : (
-                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                  {parseError ? (
-                    <div className="text-red-500">
-                      <p className="font-medium">Invalid YAML:</p>
-                      <p className="text-sm mt-1">{parseError}</p>
-                    </div>
-                  ) : (
-                    <p>Loading API preview...</p>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Add a style tag to override Swagger UI font size */}
+            <style>{`
+              .swagger-ui, .swagger-ui * {
+                font-size: ${localFontSize}px !important;
+              }
+            `}</style>
+            {specObj && isValidSpec ? (
+              <SwaggerUI spec={specObj} docExpansion="none" style={{ fontSize: localFontSize }} />
+            ) : (
+              <div className="p-8 text-red-600 font-semibold">Invalid OpenAPI/Swagger YAML</div>
+            )}
           </div>
         </div>
       </main>

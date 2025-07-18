@@ -464,18 +464,23 @@ export default function TokenPeek() {
           } = tab.state;
 
           return (
-            <div className="w-full max-w-full mx-auto flex flex-col gap-8 py-8 px-4 md:px-8 min-w-0">
+            <div className="w-full flex flex-col gap-8 py-8 px-4 md:px-8 min-w-0">
+              {/* TokenPeek Heading inside main content, left-aligned under tabs */}
+              <div className="mb-2 w-full text-left pl-2">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">TokenPeek</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">JWT decode, inspect, and sign</p>
+              </div>
               <JWTTabs value={currentTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, tab: val }))} className="w-full">
-                <JWTTabsList>
+                <JWTTabsList className="flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none px-0 justify-center">
                   <JWTTabsTrigger value="decode">JWT Decoder</JWTTabsTrigger>
                   <JWTTabsTrigger value="edit">JWT Encoder</JWTTabsTrigger>
                 </JWTTabsList>
-                <JWTTabsContent value="decode" className="flex flex-col md:flex-row gap-8 md:gap-12 w-full justify-center items-stretch min-w-0">
+                <JWTTabsContent value="decode" className="flex flex-col md:flex-row gap-8 md:gap-12 w-full items-stretch min-w-0">
                   {/* Left: JWT Input */}
                   <div className="flex-1 min-w-0 max-w-full">
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN (JWT)</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">JSON WEB TOKEN (JWT)</span>
                         <div className="flex gap-2">
                           <Button size="sm" variant="ghost" onClick={() => copyToClipboard(decodeToken)}>COPY</Button>
                           <Button size="sm" variant="ghost" onClick={clearAll}>CLEAR</Button>
@@ -493,7 +498,7 @@ export default function TokenPeek() {
                           className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f] min-w-0"
                         />
                         <div className="flex justify-end">
-                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded" onClick={handleDecodeToken}>Decode</Button>
+                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded font-mono">Decode</Button>
                         </div>
                       </div>
                     </div>
@@ -503,17 +508,17 @@ export default function TokenPeek() {
                     {/* Header Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED HEADER</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">DECODED HEADER</span>
                         <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.header || {}))}>COPY</Button>
                       </div>
                       <div className="px-6 py-4">
                         <Tabs value={currentHeaderTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, headerTab: val }))} className="w-full">
                           <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
-                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
-                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
+                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f] font-mono">JSON</TabsTrigger>
+                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f] font-mono">CLAIMS TABLE</TabsTrigger>
                           </TabsList>
                           <TabsContent value="json">
-                            <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                            <ReactJson src={decoded?.header || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
                           </TabsContent>
                           <TabsContent value="claims">
                             {decoded?.header ? <ClaimsTable data={decoded.header} /> : <div className="text-[#a67c52] italic">No claims</div>}
@@ -524,17 +529,17 @@ export default function TokenPeek() {
                     {/* Payload Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">DECODED PAYLOAD</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">DECODED PAYLOAD</span>
                         <Button size="sm" variant="ghost" onClick={() => copyToClipboard(prettyJSON(decoded?.payload || {}))}>COPY</Button>
                       </div>
                       <div className="px-6 py-4">
                         <Tabs value={currentPayloadTab} onValueChange={(val) => updateTabState(tab.id, (state) => ({ ...state, payloadTab: val }))} className="w-full">
                           <TabsList className="mb-2 flex gap-2 bg-transparent border-b border-[#e5e7eb] rounded-none">
-                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">JSON</TabsTrigger>
-                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f]">CLAIMS TABLE</TabsTrigger>
+                            <TabsTrigger value="json" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f] font-mono">JSON</TabsTrigger>
+                            <TabsTrigger value="claims" className="px-2 py-1 text-base font-medium border-b-2 border-transparent data-[state=active]:border-[#2d1c0f] data-[state=active]:text-[#2d1c0f] font-mono">CLAIMS TABLE</TabsTrigger>
                           </TabsList>
                           <TabsContent value="json">
-                            <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
+                            <ReactJson src={decoded?.payload || {}} theme="rjv-default" style={{ background: '#fff', borderRadius: 8, padding: 8, fontSize: '1rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace' }} displayDataTypes={false} collapsed={false} enableClipboard={false} />
                           </TabsContent>
                           <TabsContent value="claims">
                             {decoded?.payload ? <ClaimsTable data={decoded.payload} /> : <div className="text-[#a67c52] italic">No claims</div>}
@@ -545,16 +550,16 @@ export default function TokenPeek() {
                     {/* Signature Validation Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">JWT SIGNATURE VERIFICATION <span className="text-[#888] text-base font-normal">(OPTIONAL)</span></span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">JWT SIGNATURE VERIFICATION <span className="text-[#888] text-base font-normal">(OPTIONAL)</span></span>
                       </div>
                       <div className="px-6 py-4 flex flex-col gap-2">
-                        <label className="text-base font-semibold mb-1">SECRET</label>
+                        <label className="text-base font-semibold mb-1 font-mono">SECRET</label>
                         <div className="flex items-center gap-2 mb-2">
                           <Button size="sm" variant="ghost" onClick={() => copyToClipboard(secret)}>COPY</Button>
                           <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, secret: "" }))}>CLEAR</Button>
                         </div>
                         <Textarea placeholder="Secret" value={secret} onChange={e => updateTabState(tab.id, (state) => ({ ...state, secret: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
-                        <Button onClick={handleValidate} variant="default" className="bg-[#2d1c0f] hover:bg-[#444] w-fit mt-2">Validate</Button>
+                        <Button onClick={handleValidate} variant="default" className="bg-[#2d1c0f] hover:bg-[#444] w-fit mt-2 font-mono">Validate</Button>
                       </div>
                     </div>
                   </div>
@@ -565,7 +570,7 @@ export default function TokenPeek() {
                     {/* Header Edit Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">HEADER: ALGORITHM & TOKEN TYPE</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">HEADER: ALGORITHM & TOKEN TYPE</span>
                         <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, headerEdit: '{}' }))}>CLEAR</Button>
                       </div>
                       <div className="px-6 py-4">
@@ -576,7 +581,7 @@ export default function TokenPeek() {
                     {/* Payload Edit Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">PAYLOAD: DATA</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">PAYLOAD: DATA</span>
                         <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, payloadEdit: '{}' }))}>CLEAR</Button>
                       </div>
                       <div className="px-6 py-4">
@@ -587,14 +592,14 @@ export default function TokenPeek() {
                     {/* Secret Edit Card */}
                     <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-none">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">SIGN JWT: SECRET</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">SIGN JWT: SECRET</span>
                         <Button size="sm" variant="ghost" onClick={() => updateTabState(tab.id, (state) => ({ ...state, secret: "" }))}>CLEAR</Button>
                       </div>
                       <div className="px-6 py-4">
                         <Textarea placeholder="Secret" value={secret} onChange={e => updateTabState(tab.id, (state) => ({ ...state, secret: e.target.value }))} className="font-mono text-base bg-[#f8f8f8] border border-[#e5e7eb] text-[#2d1c0f] rounded" rows={2} />
                         <div className="flex gap-2 mt-4">
-                          <Button onClick={handleEdit} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode (unsigned)</Button>
-                          <Button onClick={handleEditAndSign} className="bg-[#2d1c0f] hover:bg-[#444] text-white">Re-encode & Sign</Button>
+                          <Button onClick={handleEdit} className="bg-[#2d1c0f] hover:bg-[#444] text-white font-mono">Re-encode (unsigned)</Button>
+                          <Button onClick={handleEditAndSign} className="bg-[#2d1c0f] hover:bg-[#444] text-white font-mono">Re-encode & Sign</Button>
                         </div>
                       </div>
                     </div>
@@ -603,7 +608,7 @@ export default function TokenPeek() {
                   <div className="flex-1 min-w-[400px] max-w-[800px]">
                     <div className="bg-white border border-[#e5e7eb] rounded-lg p-0 shadow-none flex flex-col h-full">
                       <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-[#e5e7eb]">
-                        <span className="text-lg font-semibold tracking-wide text-[#222]">JSON WEB TOKEN</span>
+                        <span className="text-lg font-semibold tracking-wide text-[#222] font-mono">JSON WEB TOKEN</span>
                         <Button size="sm" variant="ghost" onClick={() => copyToClipboard(encodeToken)}>COPY</Button>
                       </div>
                       <div className="px-6 py-4 flex-1">
