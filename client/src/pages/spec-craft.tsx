@@ -20,6 +20,8 @@ import * as yaml from 'js-yaml';
 import { Label } from '@/components/ui/label';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
+import { useSpecCraftTabsStore } from '@/lib/toolTabsStore';
+import { ToolTabs } from '@/components/ui/ToolTabs';
 
 interface Collection {
   id: string;
@@ -42,21 +44,102 @@ interface ParsedEndpoint {
 }
 
 export default function SpecCraft() {
-  const [specYaml, setSpecYaml] = useState(`openapi: 3.0.3\ninfo:\n  title: Sample API\n  version: 1.0.0\n  description: A sample API to demonstrate OpenAPI specifications\n  contact:\n    name: API Support\n    email: support@example.com\n  license:\n    name: MIT\n    url: https://opensource.org/licenses/MIT\nservers:\n  - url: https://api.example.com/v1\n    description: Production server\n  - url: https://staging-api.example.com/v1\n    description: Staging server\npaths:\n  /auth/signup:\n    post:\n      tags:\n        - Authentication\n      summary: Create new user account\n      description: Register a new user account with email and password\n      operationId: signup\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserSignup'\n            examples:\n              valid_signup:\n                summary: Valid signup request\n                value:\n                  email: \"user@example.com\"\n                  password: \"strongpassword123\"\n                  name: \"John Doe\"\n      responses:\n        '201':\n          description: User created successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/AuthResponse'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '409':\n          description: User already exists\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /auth/login:\n    post:\n      tags:\n        - Authentication\n      summary: User login\n      description: Authenticate user with email and password\n      operationId: login\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserLogin'\n            examples:\n              valid_login:\n                summary: Valid login request\n                value:\n                  email: \"user@example.com\"\n                  password: \"strongpassword123\"\n      responses:\n        '200':\n          description: Login successful\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/AuthResponse'\n        '401':\n          description: Invalid credentials\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /users/profile:\n    get:\n      tags:\n        - Users\n      summary: Get user profile\n      description: Retrieve the current user's profile information\n      operationId: getUserProfile\n      security:\n        - bearerAuth: []\n      responses:\n        '200':\n          description: User profile retrieved successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/UserProfile'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n    put:\n      tags:\n        - Users\n      summary: Update user profile\n      description: Update the current user's profile information\n      operationId: updateUserProfile\n      security:\n        - bearerAuth: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/UserProfileUpdate'\n            examples:\n              update_profile:\n                summary: Update profile request\n                value:\n                  name: \"John Smith\"\n                  bio: \"Software developer\"\n                  website: \"https://johnsmith.dev\"\n      responses:\n        '200':\n          description: Profile updated successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/UserProfile'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /products:\n    get:\n      tags:\n        - Products\n      summary: List products\n      description: Retrieve a list of products with optional filtering\n      operationId: getProducts\n      parameters:\n        - name: category\n          in: query\n          description: Filter by product category\n          required: false\n          schema:\n            type: string\n        - name: limit\n          in: query\n          description: Number of products to return\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n            maximum: 100\n            default: 20\n        - name: page\n          in: query\n          description: Page number for pagination\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n            default: 1\n      responses:\n        '200':\n          description: Products retrieved successfully\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  products:\n                    type: array\n                    items:\n                      $ref: '#/components/schemas/Product'\n                  pagination:\n                    $ref: '#/components/schemas/Pagination'\n        '400':\n          description: Invalid request parameters\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n    post:\n      tags:\n        - Products\n      summary: Create new product\n      description: Create a new product (admin only)\n      operationId: createProduct\n      security:\n        - bearerAuth: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/ProductCreate'\n            examples:\n              new_product:\n                summary: New product request\n                value:\n                  name: \"Wireless Headphones\"\n                  description: \"High-quality wireless headphones with noise cancellation\"\n                  price: 199.99\n                  category: \"Electronics\"\n                  stock: 50\n      responses:\n        '201':\n          description: Product created successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Product'\n        '400':\n          description: Invalid request data\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '401':\n          description: Unauthorized\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n        '403':\n          description: Forbidden (admin required)\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\n  /products/{id}:\n    get:\n      tags:\n        - Products\n      summary: Get product by ID\n      description: Retrieve a specific product by its ID\n      operationId: getProductById\n      parameters:\n        - name: id\n          in: path\n          description: Product ID\n          required: true\n          schema:\n            type: string\n      responses:\n        '200':\n          description: Product retrieved successfully\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Product'\n        '404':\n          description: Product not found\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/ErrorResponse'\ncomponents:\n  schemas:\n    UserSignup:\n      type: object\n      required:\n        - email\n        - password\n        - name\n      properties:\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        password:\n          type: string\n          minLength: 8\n          description: User password (minimum 8 characters)\n          example: \"strongpassword123\"\n        name:\n          type: string\n          description: User full name\n          example: \"John Doe\"\n    UserLogin:\n      type: object\n      required:\n        - email\n        - password\n      properties:\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        password:\n          type: string\n          description: User password\n          example: \"strongpassword123\"\n    AuthResponse:\n      type: object\n      properties:\n        success:\n          type: boolean\n          description: Operation success status\n          example: true\n        message:\n          type: string\n          description: Response message\n          example: \"Authentication successful\"\n        data:\n          type: object\n          properties:\n            user:\n              $ref: '#/components/schemas/UserProfile'\n            token:\n              type: string\n              description: JWT access token\n              example: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n            refreshToken:\n              type: string\n              description: JWT refresh token\n              example: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n    UserProfile:\n      type: object\n      properties:\n        id:\n          type: string\n          description: User ID\n          example: \"user_123\"\n        email:\n          type: string\n          format: email\n          description: User email address\n          example: \"user@example.com\"\n        name:\n          type: string\n          description: User full name\n          example: \"John Doe\"\n        bio:\n          type: string\n          description: User biography\n          example: \"Software developer\"\n        website:\n          type: string\n          format: uri\n          description: User website URL\n          example: \"https://johnsmith.dev\"\n        createdAt:\n          type: string\n          format: date-time\n          description: Account creation timestamp\n          example: \"2023-01-01T00:00:00Z\"\n        updatedAt:\n          type: string\n          format: date-time\n          description: Last update timestamp\n          example: \"2023-01-01T00:00:00Z\"\n    UserProfileUpdate:\n      type: object\n      properties:\n        name:\n          type: string\n          description: User full name\n          example: \"John Smith\"\n        bio:\n          type: string\n          description: User biography\n          example: \"Software developer\"\n        website:\n          type: string\n          format: uri\n          description: User website URL\n          example: \"https://johnsmith.dev\"\n    Product:\n      type: object\n      properties:\n        id:\n          type: string\n          description: Product ID\n          example: \"prod_123\"\n        name:\n          type: string\n          description: Product name\n          example: \"Wireless Headphones\"\n        description:\n          type: string\n          description: Product description\n          example: \"High-quality wireless headphones with noise cancellation\"\n        price:\n          type: number\n          format: float\n          description: Product price\n          example: 199.99\n        category:\n          type: string\n          description: Product category\n          example: \"Electronics\"\n        stock:\n          type: integer\n          description: Available stock quantity\n          example: 50\n        createdAt:\n          type: string\n          format: date-time\n          description: Product creation timestamp\n          example: \"2023-01-01T00:00:00Z\"\n        updatedAt:\n          type: string\n          format: date-time\n          description: Last update timestamp\n          example: \"2023-01-01T00:00:00Z\"\n    ProductCreate:\n      type: object\n      required:\n        - name\n        - description\n        - price\n        - category\n        - stock\n      properties:\n        name:\n          type: string\n          description: Product name\n          example: \"Wireless Headphones\"\n        description:\n          type: string\n          description: Product description\n          example: \"High-quality wireless headphones with noise cancellation\"\n        price:\n          type: number\n          format: float\n          minimum: 0\n          description: Product price\n          example: 199.99\n        category:\n          type: string\n          description: Product category\n          example: \"Electronics\"\n        stock:\n          type: integer\n          minimum: 0\n          description: Available stock quantity\n          example: 50\n    Pagination:\n      type: object\n      properties:\n        page:\n          type: integer\n          description: Current page number\n          example: 1\n        limit:\n          type: integer\n          description: Number of items per page\n          example: 20\n        total:\n          type: integer\n          description: Total number of items\n          example: 100\n        totalPages:\n          type: integer\n          description: Total number of pages\n          example: 5\n    ErrorResponse:\n      type: object\n      properties:\n        success:\n          type: boolean\n          description: Operation success status\n          example: false\n        message:\n          type: string\n          description: Error message\n          example: \"The email field is required\"\n        error:\n          type: string\n          description: Detailed error description\n          example: \"The email field is required\"\n        code:\n          type: integer\n          description: Error code\n          example: 400\n      required:\n        - success\n        - message\n        - error\n        - code\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT`);
-  const [specObj, setSpecObj] = useState<any>(null);
+  // Multi-tab state
+  const { tabs, activeTabId, setTabs, setActiveTabId } = useSpecCraftTabsStore();
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
 
+  // Migrate old single spec to first tab if present
+  useEffect(() => {
+    const savedSpec = storage.getToolData('spec-craft');
+    if (savedSpec?.spec && tabs.length === 1 && !tabs[0].state.specYaml) {
+      const newTabs = [...tabs];
+      newTabs[0].state.specYaml = savedSpec.spec;
+      setTabs(newTabs);
+    }
+  }, []);
+
+  // Persist tabs and active tab
+  useEffect(() => {
+    localStorage.setItem('devtoolnest-speccraft-tabs', JSON.stringify(tabs));
+    localStorage.setItem('devtoolnest-speccraft-active-tab', activeTabId);
+  }, [tabs, activeTabId]);
+
+  // All state is now per-tab
+  const [specObj, setSpecObj] = useState<any>(null);
   useEffect(() => {
     try {
-      const obj = yaml.load(specYaml);
+      const obj = yaml.load(activeTab.state.specYaml);
       setSpecObj(obj);
     } catch (e) {
       setSpecObj(null);
     }
-  }, [specYaml]);
+  }, [activeTab.state.specYaml]);
 
   const [isValidSpec, setIsValidSpec] = useState(true);
   const [parseError, setParseError] = useState<string>('');
-  const [theme, setTheme] = useState('github');
+  useEffect(() => {
+    try {
+      const parsed = yaml.load(activeTab.state.specYaml) as any;
+      setSpecObj(parsed);
+      setIsValidSpec(true);
+      setParseError('');
+    } catch (error) {
+      setIsValidSpec(false);
+      setParseError((error as Error).message);
+      setSpecObj(null);
+    }
+  }, [activeTab.state.specYaml]);
+
+  // Theme per tab
+  const theme = activeTab.state.theme;
+  const setTheme = (newTheme: string) => {
+    const newTabs = tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, state: { ...tab.state, theme: newTheme } } : tab
+    );
+    setTabs(newTabs);
+  };
+
+  // Split position per tab
+  const splitPosition = activeTab.state.splitPosition;
+  const setSplitPosition = (pos: number) => {
+    const newTabs = tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, state: { ...tab.state, splitPosition: pos } } : tab
+    );
+    setTabs(newTabs);
+  };
+
+  // YAML per tab
+  const setSpecYaml = (yaml: string) => {
+    const newTabs = tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, state: { ...tab.state, specYaml: yaml } } : tab
+    );
+    setTabs(newTabs);
+  };
+
+  // Tab management handlers
+  const addTab = () => {
+    const newId = `tab-${Date.now()}`;
+    setTabs([
+      ...tabs,
+      { id: newId, title: `Tab ${tabs.length + 1}`, state: { specYaml: '', theme: 'github', splitPosition: 50 } },
+    ]);
+    setActiveTabId(newId);
+  };
+  const closeTab = (id: string) => {
+    let idx = tabs.findIndex(t => t.id === id);
+    let newTabs = tabs.filter(t => t.id !== id);
+    if (newTabs.length === 0) {
+      newTabs = [{ id: 'tab-1', title: 'Tab 1', state: { specYaml: '', theme: 'github', splitPosition: 50 } }];
+    }
+    setTabs(newTabs);
+    if (activeTabId === id) {
+      setActiveTabId(newTabs[Math.max(0, idx - 1)].id);
+    }
+  };
+  const renameTab = (id: string, title: string) => {
+    setTabs(tabs.map(tab => tab.id === id ? { ...tab, title } : tab));
+  };
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSingleCurlDialog, setShowSingleCurlDialog] = useState(false);
   const [showBulkCurlDialog, setShowBulkCurlDialog] = useState(false);
@@ -66,7 +149,6 @@ export default function SpecCraft() {
   const [selectedServer, setSelectedServer] = useState('');
   const [authToken, setAuthToken] = useState('');
   const [customHeaders, setCustomHeaders] = useState('');
-  const [splitPosition, setSplitPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   // 1. Add state for the dialog and imported request
@@ -194,7 +276,7 @@ export default function SpecCraft() {
   // Parse spec when it changes
   useEffect(() => {
     try {
-      const parsed = yaml.load(specYaml) as any;
+      const parsed = yaml.load(activeTab.state.specYaml) as any;
       setSpecObj(parsed);
       setIsValidSpec(true);
       setParseError('');
@@ -203,7 +285,7 @@ export default function SpecCraft() {
       setParseError((error as Error).message);
       setSpecObj(null);
     }
-  }, [specYaml]);
+  }, [activeTab.state.specYaml]);
 
   // Initialize server selection
   useEffect(() => {
@@ -215,10 +297,10 @@ export default function SpecCraft() {
   // Save spec to storage when it changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      storage.saveToolData('spec-craft', { spec: specYaml });
+      storage.saveToolData('spec-craft', { spec: activeTab.state.specYaml });
     }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [specYaml]);
+  }, [activeTab.state.specYaml]);
 
   // Load saved spec from storage
   useEffect(() => {
@@ -229,8 +311,11 @@ export default function SpecCraft() {
   }, []);
 
   const handleSpecChange = useCallback((newSpec: string) => {
-    setSpecYaml(newSpec);
-  }, []);
+    const newTabs = tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, state: { ...tab.state, specYaml: newSpec } } : tab
+    );
+    setTabs(newTabs);
+  }, [tabs, activeTabId, setTabs]);
 
   // Extract endpoints from spec
   const extractEndpointsFromSpec = useCallback((specObj: any): ParsedEndpoint[] => {
@@ -834,7 +919,7 @@ export default function SpecCraft() {
   }, [bulkCurlCommands]);
 
   const handleExportSpec = useCallback(() => {
-    const blob = new Blob([specYaml], { type: 'application/yaml' });
+    const blob = new Blob([activeTab.state.specYaml], { type: 'application/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -848,7 +933,7 @@ export default function SpecCraft() {
       title: "Success",
       description: "API specification exported successfully",
     });
-  }, [specYaml]);
+  }, [activeTab.state.specYaml]);
 
   // Replace "Try it out" buttons with cURL buttons using CSS injection
   useEffect(() => {
@@ -1176,619 +1261,626 @@ export default function SpecCraft() {
   }, [localFontSize]);
 
   return (
-    <div className={isFullscreen
-      ? "fixed inset-0 z-[9999] bg-white w-screen h-screen font-sans"
-      : "min-h-screen w-full bg-[#fafafa] flex flex-col items-center font-sans"
-    }>
-      {/* SpecCraft Heading, left-aligned, matching Code Beautifier */}
-      <div className="w-full text-left pl-2 mb-2">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SpecCraft</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">OpenAPI Specification Editor & Documentation Generator</p>
-      </div>
-      
-      <main className={`${isFullscreen ? 'px-2 py-2' : 'w-full h-full py-4'}`}>
-        {/* Compact Controls */}
-        <div className={`flex items-center justify-between ${isFullscreen ? 'mb-2' : 'mb-4'} bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 shadow-sm`}>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Theme:</span>
-            <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className="w-24 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="github">Light</SelectItem>
-                <SelectItem value="monokai">Dark</SelectItem>
-              </SelectContent>
-            </Select>
-            {/* Moved Bulk cURL and font size controls here */}
-            <Button onClick={() => setShowBulkCurlDialog(true)} variant="outline" className="font-semibold">
-              Bulk cURL
-            </Button>
-            <button
-              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
-              onClick={() => handleLocalFontSizeChange(-2)}
-              title="Decrease YAML/API font size"
-            >A-</button>
-            <button
-              className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
-              onClick={() => handleLocalFontSizeChange(2)}
-              title="Increase YAML/API font size"
-            >A+</button>
+    <ToolTabs
+      tabs={tabs}
+      activeTabId={activeTabId}
+      onTabChange={setActiveTabId}
+      onTabAdd={addTab}
+      onTabClose={closeTab}
+      onTabRename={renameTab}
+      renderTabContent={(tab) => (
+        <div className={isFullscreen
+          ? "fixed inset-0 z-[9999] bg-white w-screen h-screen font-sans"
+          : "min-h-screen w-full bg-[#fafafa] flex flex-col items-center font-sans"
+        }>
+          {/* SpecCraft Heading, left-aligned, matching Code Beautifier */}
+          <div className="w-full text-left pl-2 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SpecCraft</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">OpenAPI Specification Editor & Documentation Generator</p>
           </div>
-          {/* Right group remains unchanged */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportSpec}
-              className="h-8"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Export
-            </Button>
-            {isValidSpec ? (
-              <Badge className="bg-green-500 text-white text-xs">Valid</Badge>
-            ) : (
-              <Badge variant="destructive" className="text-xs">Invalid</Badge>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="h-8"
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            >
-              {isFullscreen ? (
-                <Minimize className="w-4 h-4" />
-              ) : (
-                <Maximize className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Split Screen Layout */}
-        <div className="split-container flex w-full min-h-0" style={{ height: 'calc(100vh - 64px)' }}>
-          {/* YAML Editor */}
-          <div
-            className="flex flex-col min-w-0 bg-white border-r border-[#e5e7eb] h-full overflow-auto"
-            style={{ width: isMobile ? '100%' : `${splitPosition}%` }}
-          >
-            <AceEditor
-              mode="yaml"
-              theme={theme}
-              value={specYaml}
-              onChange={handleSpecChange}
-              name="spec-yaml-editor"
-              fontSize={localFontSize}
-              width="100%"
-              height="100%"
-              setOptions={{
-                useWorker: false,
-                showLineNumbers: true,
-                tabSize: 2,
-                wrap: true,
-                showPrintMargin: false,
-              }}
-              editorProps={{ $blockScrolling: true }}
-              style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize, height: '100%' }}
-            />
-          </div>
-          {/* Draggable Divider */}
-          <div
-            className="cursor-col-resize w-2 bg-[#f3f3f3] hover:bg-[#e0e0e0] transition-colors duration-150 h-full z-10"
-            style={{ minWidth: 8, maxWidth: 12 }}
-            onMouseDown={handleMouseDown}
-          />
-          {/* API Preview */}
-          <div
-            className="flex-1 min-w-0 bg-white overflow-auto h-full"
-            style={{ width: isMobile ? '100%' : `calc(100% - ${splitPosition}%)`, fontSize: localFontSize }}
-          >
-            {/* Only override font size for Swagger UI textareas and code blocks, not all elements */}
-            <style>{`
-              .swagger-ui textarea,
-              .swagger-ui pre,
-              .swagger-ui code,
-              .swagger-ui input,
-              .swagger-ui select {
-                font-size: ${localFontSize}px !important;
-                font-family: inherit !important;
-              }
-            `}</style>
-            {specObj && isValidSpec ? (
-              <SwaggerUI spec={specObj} docExpansion="none" style={{ fontSize: localFontSize, height: '100%' }} />
-            ) : (
-              <div className="p-8 text-red-600 font-semibold">Invalid OpenAPI/Swagger YAML</div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Single cURL Dialog */}
-      <Dialog open={showSingleCurlDialog} onOpenChange={(open) => {
-        setShowSingleCurlDialog(open);
-        // Clean up import state when dialog is closed
-        if (!open) {
-          setImportedRequest(null);
-          setCurrentEndpoint(null);
-        }
-      }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto z-[9999]">
-          <DialogHeader>
-            <DialogTitle>
-              cURL Command - {currentEndpoint?.method} {currentEndpoint?.path}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Server URL:</label>
-                <Select value={selectedServer} onValueChange={setSelectedServer}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select server" />
+          <main className={`${isFullscreen ? 'px-2 py-2' : 'w-full h-full py-4'}`}>
+            {/* Compact Controls */}
+            <div className={`flex items-center justify-between ${isFullscreen ? 'mb-2' : 'mb-4'} bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 shadow-sm`}>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">Theme:</span>
+                <Select value={tab.state.theme} onValueChange={setTheme}>
+                  <SelectTrigger className="w-24 h-8">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {specObj?.servers?.map((server, index) => (
-                      <SelectItem key={index} value={server.url}>
-                        {server.url} - {server.description}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="github">Light</SelectItem>
+                    <SelectItem value="monokai">Dark</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Auth Token:</label>
-                <Input
-                  placeholder="Bearer token (optional)"
-                  value={authToken}
-                  onChange={(e) => setAuthToken(e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Custom Headers:</label>
-              <Textarea
-                placeholder="X-Custom-Header: value&#10;Another-Header: value"
-                value={customHeaders}
-                onChange={(e) => setCustomHeaders(e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Generated cURL:</label>
-              <div className="relative">
-                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap break-all max-h-96">
-                  {singleCurlCommand}
-                </pre>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleCopyCurl(singleCurlCommand)}
-                  className="absolute top-2 right-2"
-                >
-                  <Copy className="w-4 h-4" />
+                {/* Moved Bulk cURL and font size controls here */}
+                <Button onClick={() => setShowBulkCurlDialog(true)} variant="outline" className="font-semibold">
+                  Bulk cURL
                 </Button>
+                <button
+                  className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+                  onClick={() => handleLocalFontSizeChange(-2)}
+                  title="Decrease YAML/API font size"
+                >A-</button>
+                <button
+                  className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-200 text-lg font-bold"
+                  onClick={() => handleLocalFontSizeChange(2)}
+                  title="Increase YAML/API font size"
+                >A+</button>
               </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSingleCurlDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={() => handleOpenInReqNest(currentEndpoint)}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open in ReqNest
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk cURL Dialog */}
-      <Dialog open={showBulkCurlDialog} onOpenChange={(open) => {
-        setShowBulkCurlDialog(open);
-        // Clean up bulk import state when dialog is closed
-        if (!open) {
-          setIsBulkImport(false);
-          setBulkImportCollection(null);
-        }
-      }}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto z-[9999]">
-          <DialogHeader>
-            <DialogTitle>Bulk cURL Commands</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Server URL:</label>
-                <Select value={selectedServer} onValueChange={setSelectedServer}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select server" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {specObj?.servers?.map((server, index) => (
-                      <SelectItem key={index} value={server.url}>
-                        {server.url} - {server.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Auth Token:</label>
-                <Input
-                  placeholder="Bearer token (optional)"
-                  value={authToken}
-                  onChange={(e) => setAuthToken(e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Custom Headers:</label>
-              <Textarea
-                placeholder="X-Custom-Header: value&#10;Another-Header: value"
-                value={customHeaders}
-                onChange={(e) => setCustomHeaders(e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div className="flex justify-end mb-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleGenerateBulkCurl()}
-                className="mr-2"
-              >
-                <Zap className="w-4 h-4 mr-1" />
-                Regenerate
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCopyBulkCurl}
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                Copy All
-              </Button>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm whitespace-pre-wrap break-all">
-                {bulkCurlCommands.join('\n\n')}
-              </pre>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkCurlDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={handleOpenBulkInReqNest}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open Collection in ReqNest
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Save to Collection Dialog */}
-      <Dialog open={showSaveToCollectionDialog} onOpenChange={(open) => {
-        setShowSaveToCollectionDialog(open);
-        // Clean up bulk import state when dialog is closed
-        if (!open) {
-          setIsBulkImport(false);
-          setBulkImportCollection(null);
-          setImportedRequest(null);
-          setSelectedFolder(null);
-          setShowNewFolderInput(false);
-          setNewFolderName("");
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="text-lg font-semibold">
-              {isBulkImport ? `Save ${bulkImportCollection?.requests?.length || 0} Requests` : "Save Request to Collection"}
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              {isBulkImport 
-                ? `Save ${bulkImportCollection?.requests?.length || 0} imported requests to an existing collection or create a new one`
-                : "Save your imported request to an existing collection or create a new one"
-              }
-            </p>
-          </DialogHeader>
-          <div className="space-y-6 py-2">
-            {!isBulkImport && (
-              <div className="space-y-2">
-                <Label htmlFor="request-name" className="text-sm font-medium">
-                  Request Name
-                </Label>
-                <Input
-                  id="request-name"
-                  value={importedRequest?.name || importedRequest?.url || ""}
-                  readOnly
-                  className="h-10"
-                />
-                <p className="text-xs text-muted-foreground">
-                  The request will be saved with this name
-                </p>
-              </div>
-            )}
-            
-            {isBulkImport && bulkImportCollection && (
-              <div className="p-3 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline">{bulkImportCollection.requests.length} requests</Badge>
-                  <span className="text-sm font-medium">Ready to import</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {bulkImportCollection.requests.slice(0, 3).map((req, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="font-mono text-xs">{req.method}</span>
-                      <span className="truncate">{req.url}</span>
-                    </div>
-                  ))}
-                  {bulkImportCollection.requests.length > 3 && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      ... and {bulkImportCollection.requests.length - 3} more requests
-                    </div>
-                  )}
-                  <div className="text-xs text-blue-600 mt-2 font-medium">
-                    📁 Organized by resource folders
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Select Collection</Label>
-              {collections.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {collections.map((collection) => (
-                    <div
-                      key={collection.id}
-                      className="border rounded-lg p-3 space-y-3"
-                    >
-                      <div 
-                        className="flex items-center justify-between hover:bg-accent/50 cursor-pointer"
-                        onClick={() => {
-                          if (isBulkImport) {
-                            // For bulk import, save the collection to the selected collection
-                            const collections = storage.getCollections();
-                            const targetCollection = collections.find(c => c.id === collection.id);
-                            if (targetCollection && bulkImportCollection) {
-                              // Create a mapping of old folder IDs to new folder IDs
-                              const folderIdMapping = new Map();
-                              let requestsToAdd: any[] = [];
-                              
-                              // First, add folders and create ID mapping
-                              bulkImportCollection.requests.forEach(req => {
-                                if (req.method === 'FOLDER') {
-                                  const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                                  folderIdMapping.set(req.id, newFolderId);
-                                  
-                                  requestsToAdd = [...requestsToAdd, {
-                                    ...req,
-                                    id: newFolderId
-                                  }];
-                                }
-                              });
-                              
-                              // Then, add requests with updated parentId references
-                              bulkImportCollection.requests.forEach(req => {
-                                if (req.method !== 'FOLDER') {
-                                  const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
-                                  
-                                  requestsToAdd = [...requestsToAdd, {
-                                    ...req,
-                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                                    parentId: newParentId
-                                  }];
-                                }
-                              });
-                              
-                              // targetCollection.requests.push(...requestsToAdd);
-                              targetCollection.requests = [...(targetCollection.requests || []), ...requestsToAdd];
-                              targetCollection.updatedAt = new Date();
-                              storage.saveCollection(targetCollection);
-                              
-                              toast({
-                                title: "Collection Updated",
-                                description: `${bulkImportCollection.requests.length} items added to "${targetCollection.name}"`,
-                              });
-                              setShowSaveToCollectionDialog(false);
-                              setIsBulkImport(false);
-                              setBulkImportCollection(null);
-                            }
-                          } else {
-                            saveToCollection(collection.id);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Folder className="w-4 h-4 text-violet-600" />
-                          <div>
-                            <p className="text-sm font-medium">{collection.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {collection.requests.length} request{collection.requests.length !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-8 px-3">
-                          {isBulkImport ? "Select Collection" : "Save to Collection"}
-                        </Button>
-                      </div>
-                      
-                      {/* Folder Options for Single Import */}
-                      {!isBulkImport && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Save to folder:</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => setShowNewFolderInput(!showNewFolderInput)}
-                            >
-                              {showNewFolderInput ? 'Cancel' : 'New Folder'}
-                            </Button>
-                          </div>
-                          
-                          {/* Existing Folders */}
-                          {(() => {
-                            const folders = collection.requests.filter(r => r.method === 'FOLDER');
-                            return folders.length > 0 ? (
-                              <div className="space-y-1">
-                                {folders.map(folder => (
-                                  <div
-                                    key={folder.id}
-                                    className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"
-                                  >
-                                    <span className="flex items-center gap-1">
-                                      <Folder className="w-3 h-3" />
-                                      {folder.name}
-                                    </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 px-2 text-xs"
-                                      onClick={() => saveToCollection(collection.id, folder.id)}
-                                    >
-                                      Save
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null;
-                          })()}
-                          
-                          {/* New Folder Input */}
-                          {showNewFolderInput && (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={newFolderName}
-                                onChange={(e) => setNewFolderName(e.target.value)}
-                                placeholder="Folder name"
-                                className="h-8 text-xs"
-                                autoFocus
-                              />
-                              <Button
-                                size="sm"
-                                className="h-8 px-3 text-xs"
-                                onClick={() => createFolderAndSave(collection.id)}
-                                disabled={!newFolderName.trim()}
-                              >
-                                Create & Save
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  <p className="text-sm">No collections yet</p>
-                </div>
-              )}
-              <div className="pt-2 border-t">
+              {/* Right group remains unchanged */}
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    if (isBulkImport) {
-                      // For bulk import, create new collection and add all requests with proper folder structure
-                      const folderIdMapping = new Map();
-                      let requests: any[] = [];
-                      
-                      // First, add folders and create ID mapping
-                      bulkImportCollection.requests.forEach(req => {
-                        if (req.method === 'FOLDER') {
-                          const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                          folderIdMapping.set(req.id, newFolderId);
-                          
-                          requests = [...requests, {
-                            ...req,
-                            id: newFolderId
-                          }];
-                        }
-                      });
-                      
-                      // Then, add requests with updated parentId references
-                      bulkImportCollection.requests.forEach(req => {
-                        if (req.method !== 'FOLDER') {
-                          const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
-                          
-                          requests = [...requests, {
-                            ...req,
-                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                            parentId: newParentId
-                          }];
-                        }
-                      });
-                      
-                      const newCollection = {
-                        id: `collection-${Date.now()}`,
-                        name: newCollectionName || bulkImportCollection.name,
-                        requests: requests,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                      };
-                      storage.saveCollection(newCollection);
-                      setCollections(prev => [...prev, newCollection]);
-                      setNewCollectionName("");
-                      
-                      toast({
-                        title: "Collection Created",
-                        description: `Collection "${newCollection.name}" created with ${bulkImportCollection.requests.length} requests`,
-                      });
-                      setShowSaveToCollectionDialog(false);
-                      setIsBulkImport(false);
-                      setBulkImportCollection(null);
-                    } else {
-                      // For single import, validate collection name
-                      if (newCollectionName.trim()) {
-                        createCollection();
-                      } else {
-                        toast({
-                          title: "Collection name required",
-                          description: "Please enter a name for your collection",
-                          variant: "destructive"
-                        });
-                      }
-                    }
-                  }}
-                  className="w-full"
+                  size="sm"
+                  onClick={handleExportSpec}
+                  className="h-8"
                 >
-                  <FolderPlus className="w-4 h-4 mr-2" />
-                  {isBulkImport ? "Create New Collection" : "Create New Collection"}
+                  <Download className="w-4 h-4 mr-1" />
+                  Export
                 </Button>
-                {!isBulkImport && (
-                  <Input
-                    value={newCollectionName}
-                    onChange={e => setNewCollectionName(e.target.value)}
-                    placeholder="Collection name"
-                    className="h-8 mt-2"
-                  />
+                {isValidSpec ? (
+                  <Badge className="bg-green-500 text-white text-xs">Valid</Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">Invalid</Badge>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="h-8"
+                  title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="w-4 h-4" />
+                  ) : (
+                    <Maximize className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            {/* Split Screen Layout */}
+            <div className="split-container flex w-full min-h-0" style={{ height: 'calc(100vh - 64px)' }}>
+              {/* YAML Editor */}
+              <div
+                className="flex flex-col min-w-0 bg-white border-r border-[#e5e7eb] h-full overflow-auto"
+                style={{ width: isMobile ? '100%' : `${tab.state.splitPosition}%` }}
+              >
+                <AceEditor
+                  mode="yaml"
+                  theme={tab.state.theme}
+                  value={tab.state.specYaml}
+                  onChange={handleSpecChange}
+                  name="spec-yaml-editor"
+                  fontSize={localFontSize}
+                  width="100%"
+                  height="100%"
+                  setOptions={{
+                    useWorker: false,
+                    showLineNumbers: true,
+                    tabSize: 2,
+                    wrap: true,
+                    showPrintMargin: false,
+                  }}
+                  editorProps={{ $blockScrolling: true }}
+                  style={{ fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace', fontSize: localFontSize, height: '100%' }}
+                />
+              </div>
+              {/* Draggable Divider */}
+              <div
+                className="cursor-col-resize w-2 bg-[#f3f3f3] hover:bg-[#e0e0e0] transition-colors duration-150 h-full z-10"
+                style={{ minWidth: 8, maxWidth: 12 }}
+                onMouseDown={handleMouseDown}
+              />
+              {/* API Preview */}
+              <div
+                className="flex-1 min-w-0 bg-white overflow-auto h-full"
+                style={{ width: isMobile ? '100%' : `calc(100% - ${tab.state.splitPosition}%)`, fontSize: localFontSize }}
+              >
+                {/* Only override font size for Swagger UI textareas and code blocks, not all elements */}
+                <style>{`
+                  .swagger-ui textarea,
+                  .swagger-ui pre,
+                  .swagger-ui code,
+                  .swagger-ui input,
+                  .swagger-ui select {
+                    font-size: ${localFontSize}px !important;
+                    font-family: inherit !important;
+                  }
+                `}</style>
+                {specObj && isValidSpec ? (
+                  <SwaggerUI spec={specObj} docExpansion="none" style={{ fontSize: localFontSize, height: '100%' }} />
+                ) : (
+                  <div className="p-8 text-red-600 font-semibold">Invalid OpenAPI/Swagger YAML</div>
                 )}
               </div>
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowSaveToCollectionDialog(false);
-                  setIsBulkImport(false);
-                  setBulkImportCollection(null);
-                  setSelectedFolder(null);
-                  setShowNewFolderInput(false);
-                  setNewFolderName("");
-                }}
-                className="flex-1"
-              >
-                Skip
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </main>
+          {/* Single cURL Dialog */}
+          <Dialog open={showSingleCurlDialog} onOpenChange={(open) => {
+            setShowSingleCurlDialog(open);
+            // Clean up import state when dialog is closed
+            if (!open) {
+              setImportedRequest(null);
+              setCurrentEndpoint(null);
+            }
+          }}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto z-[9999]">
+              <DialogHeader>
+                <DialogTitle>
+                  cURL Command - {currentEndpoint?.method} {currentEndpoint?.path}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Server URL:</label>
+                    <Select value={selectedServer} onValueChange={setSelectedServer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select server" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {specObj?.servers?.map((server, index) => (
+                          <SelectItem key={index} value={server.url}>
+                            {server.url} - {server.description}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Auth Token:</label>
+                    <Input
+                      placeholder="Bearer token (optional)"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Custom Headers:</label>
+                  <Textarea
+                    placeholder="X-Custom-Header: value&#10;Another-Header: value"
+                    value={customHeaders}
+                    onChange={(e) => setCustomHeaders(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Generated cURL:</label>
+                  <div className="relative">
+                    <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap break-all max-h-96">
+                      {singleCurlCommand}
+                    </pre>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleCopyCurl(singleCurlCommand)}
+                      className="absolute top-2 right-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSingleCurlDialog(false)}>
+                  Close
+                </Button>
+                <Button onClick={() => handleOpenInReqNest(currentEndpoint)}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in ReqNest
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bulk cURL Dialog */}
+          <Dialog open={showBulkCurlDialog} onOpenChange={(open) => {
+            setShowBulkCurlDialog(open);
+            // Clean up bulk import state when dialog is closed
+            if (!open) {
+              setIsBulkImport(false);
+              setBulkImportCollection(null);
+            }
+          }}>
+            <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto z-[9999]">
+              <DialogHeader>
+                <DialogTitle>Bulk cURL Commands</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Server URL:</label>
+                    <Select value={selectedServer} onValueChange={setSelectedServer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select server" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {specObj?.servers?.map((server, index) => (
+                          <SelectItem key={index} value={server.url}>
+                            {server.url} - {server.description}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Auth Token:</label>
+                    <Input
+                      placeholder="Bearer token (optional)"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Custom Headers:</label>
+                  <Textarea
+                    placeholder="X-Custom-Header: value&#10;Another-Header: value"
+                    value={customHeaders}
+                    onChange={(e) => setCustomHeaders(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end mb-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleGenerateBulkCurl()}
+                    className="mr-2"
+                  >
+                    <Zap className="w-4 h-4 mr-1" />
+                    Regenerate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyBulkCurl}
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy All
+                  </Button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm whitespace-pre-wrap break-all">
+                    {bulkCurlCommands.join('\n\n')}
+                  </pre>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowBulkCurlDialog(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleOpenBulkInReqNest}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Collection in ReqNest
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Save to Collection Dialog */}
+          <Dialog open={showSaveToCollectionDialog} onOpenChange={(open) => {
+            setShowSaveToCollectionDialog(open);
+            // Clean up bulk import state when dialog is closed
+            if (!open) {
+              setIsBulkImport(false);
+              setBulkImportCollection(null);
+              setImportedRequest(null);
+              setSelectedFolder(null);
+              setShowNewFolderInput(false);
+              setNewFolderName("");
+            }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="text-lg font-semibold">
+                  {isBulkImport ? `Save ${bulkImportCollection?.requests?.length || 0} Requests` : "Save Request to Collection"}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {isBulkImport 
+                    ? `Save ${bulkImportCollection?.requests?.length || 0} imported requests to an existing collection or create a new one`
+                    : "Save your imported request to an existing collection or create a new one"
+                  }
+                </p>
+              </DialogHeader>
+              <div className="space-y-6 py-2">
+                {!isBulkImport && (
+                  <div className="space-y-2">
+                    <Label htmlFor="request-name" className="text-sm font-medium">
+                      Request Name
+                    </Label>
+                    <Input
+                      id="request-name"
+                      value={importedRequest?.name || importedRequest?.url || ""}
+                      readOnly
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The request will be saved with this name
+                    </p>
+                  </div>
+                )}
+                
+                {isBulkImport && bulkImportCollection && (
+                  <div className="p-3 border rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline">{bulkImportCollection.requests.length} requests</Badge>
+                      <span className="text-sm font-medium">Ready to import</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {bulkImportCollection.requests.slice(0, 3).map((req, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{req.method}</span>
+                          <span className="truncate">{req.url}</span>
+                        </div>
+                      ))}
+                      {bulkImportCollection.requests.length > 3 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          ... and {bulkImportCollection.requests.length - 3} more requests
+                        </div>
+                      )}
+                      <div className="text-xs text-blue-600 mt-2 font-medium">
+                        📁 Organized by resource folders
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Select Collection</Label>
+                  {collections.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {collections.map((collection) => (
+                        <div
+                          key={collection.id}
+                          className="border rounded-lg p-3 space-y-3"
+                        >
+                          <div 
+                            className="flex items-center justify-between hover:bg-accent/50 cursor-pointer"
+                            onClick={() => {
+                              if (isBulkImport) {
+                                // For bulk import, save the collection to the selected collection
+                                const collections = storage.getCollections();
+                                const targetCollection = collections.find(c => c.id === collection.id);
+                                if (targetCollection && bulkImportCollection) {
+                                  // Create a mapping of old folder IDs to new folder IDs
+                                  const folderIdMapping = new Map();
+                                  let requestsToAdd: any[] = [];
+                                  
+                                  // First, add folders and create ID mapping
+                                  bulkImportCollection.requests.forEach(req => {
+                                    if (req.method === 'FOLDER') {
+                                      const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                                      folderIdMapping.set(req.id, newFolderId);
+                                      
+                                      requestsToAdd = [...requestsToAdd, {
+                                        ...req,
+                                        id: newFolderId
+                                      }];
+                                    }
+                                  });
+                                  
+                                  // Then, add requests with updated parentId references
+                                  bulkImportCollection.requests.forEach(req => {
+                                    if (req.method !== 'FOLDER') {
+                                      const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
+                                      
+                                      requestsToAdd = [...requestsToAdd, {
+                                        ...req,
+                                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                        parentId: newParentId
+                                      }];
+                                    }
+                                  });
+                                  
+                                  // targetCollection.requests.push(...requestsToAdd);
+                                  targetCollection.requests = [...(targetCollection.requests || []), ...requestsToAdd];
+                                  targetCollection.updatedAt = new Date();
+                                  storage.saveCollection(targetCollection);
+                                  
+                                  toast({
+                                    title: "Collection Updated",
+                                    description: `${bulkImportCollection.requests.length} items added to "${targetCollection.name}"`,
+                                  });
+                                  setShowSaveToCollectionDialog(false);
+                                  setIsBulkImport(false);
+                                  setBulkImportCollection(null);
+                                }
+                              } else {
+                                saveToCollection(collection.id);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Folder className="w-4 h-4 text-violet-600" />
+                              <div>
+                                <p className="text-sm font-medium">{collection.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {collection.requests.length} request{collection.requests.length !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm" className="h-8 px-3">
+                              {isBulkImport ? "Select Collection" : "Save to Collection"}
+                            </Button>
+                          </div>
+                          
+                          {/* Folder Options for Single Import */}
+                          {!isBulkImport && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Save to folder:</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => setShowNewFolderInput(!showNewFolderInput)}
+                                >
+                                  {showNewFolderInput ? 'Cancel' : 'New Folder'}
+                                </Button>
+                              </div>
+                              
+                              {/* Existing Folders */}
+                              {(() => {
+                                const folders = collection.requests.filter(r => r.method === 'FOLDER');
+                                return folders.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {folders.map(folder => (
+                                      <div
+                                        key={folder.id}
+                                        className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"
+                                      >
+                                        <span className="flex items-center gap-1">
+                                          <Folder className="w-3 h-3" />
+                                          {folder.name}
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 px-2 text-xs"
+                                          onClick={() => saveToCollection(collection.id, folder.id)}
+                                        >
+                                          Save
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+                              
+                              {/* New Folder Input */}
+                              {showNewFolderInput && (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={newFolderName}
+                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                    placeholder="Folder name"
+                                    className="h-8 text-xs"
+                                    autoFocus
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3 text-xs"
+                                    onClick={() => createFolderAndSave(collection.id)}
+                                    disabled={!newFolderName.trim()}
+                                  >
+                                    Create & Save
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <p className="text-sm">No collections yet</p>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (isBulkImport) {
+                          // For bulk import, create new collection and add all requests with proper folder structure
+                          const folderIdMapping = new Map();
+                          let requests: any[] = [];
+                          
+                          // First, add folders and create ID mapping
+                          bulkImportCollection.requests.forEach(req => {
+                            if (req.method === 'FOLDER') {
+                              const newFolderId = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                              folderIdMapping.set(req.id, newFolderId);
+                              
+                              requests = [...requests, {
+                                ...req,
+                                id: newFolderId
+                              }];
+                            }
+                          });
+                          
+                          // Then, add requests with updated parentId references
+                          bulkImportCollection.requests.forEach(req => {
+                            if (req.method !== 'FOLDER') {
+                              const newParentId = req.parentId ? folderIdMapping.get(req.parentId) : undefined;
+                              
+                              requests = [...requests, {
+                                ...req,
+                                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                parentId: newParentId
+                              }];
+                            }
+                          });
+                          
+                          const newCollection = {
+                            id: `collection-${Date.now()}`,
+                            name: newCollectionName || bulkImportCollection.name,
+                            requests: requests,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                          };
+                          storage.saveCollection(newCollection);
+                          setCollections(prev => [...prev, newCollection]);
+                          setNewCollectionName("");
+                          
+                          toast({
+                            title: "Collection Created",
+                            description: `Collection "${newCollection.name}" created with ${bulkImportCollection.requests.length} requests`,
+                          });
+                          setShowSaveToCollectionDialog(false);
+                          setIsBulkImport(false);
+                          setBulkImportCollection(null);
+                        } else {
+                          // For single import, validate collection name
+                          if (newCollectionName.trim()) {
+                            createCollection();
+                          } else {
+                            toast({
+                              title: "Collection name required",
+                              description: "Please enter a name for your collection",
+                              variant: "destructive"
+                            });
+                          }
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <FolderPlus className="w-4 h-4 mr-2" />
+                      {isBulkImport ? "Create New Collection" : "Create New Collection"}
+                    </Button>
+                    {!isBulkImport && (
+                      <Input
+                        value={newCollectionName}
+                        onChange={e => setNewCollectionName(e.target.value)}
+                        placeholder="Collection name"
+                        className="h-8 mt-2"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowSaveToCollectionDialog(false);
+                      setIsBulkImport(false);
+                      setBulkImportCollection(null);
+                      setSelectedFolder(null);
+                      setShowNewFolderInput(false);
+                      setNewFolderName("");
+                    }}
+                    className="flex-1"
+                  >
+                    Skip
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+    />
   );
 }

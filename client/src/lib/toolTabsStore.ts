@@ -189,4 +189,57 @@ export const useEncoderDecoderTabsStore = create<EncoderDecoderTabsState>(((set:
   };
 }));
 
-export type { EncoderDecoderTabsState }; 
+export type { EncoderDecoderTabsState };
+
+// SpecCraft multi-tab support
+const DEFAULT_SPECCRAFT_TAB_STATE = {
+  specYaml: '',
+  theme: 'github',
+  splitPosition: 50,
+};
+
+interface SpecCraftTabsState {
+  tabs: ToolTab<typeof DEFAULT_SPECCRAFT_TAB_STATE>[];
+  activeTabId: string;
+  setTabs: (tabs: ToolTab<typeof DEFAULT_SPECCRAFT_TAB_STATE>[]) => void;
+  setActiveTabId: (id: string) => void;
+  resetTabs: () => void;
+}
+
+const initialSpecCraftTab = (): ToolTab<typeof DEFAULT_SPECCRAFT_TAB_STATE>[] => [
+  { id: 'tab-1', title: 'Tab 1', state: { ...DEFAULT_SPECCRAFT_TAB_STATE } },
+];
+
+const SPECCRAFT_TABS_LOCAL_STORAGE_KEY = "devtoolnest-speccraft-tabs";
+const SPECCRAFT_ACTIVE_TAB_LOCAL_STORAGE_KEY = "devtoolnest-speccraft-active-tab";
+
+function getInitialSpecCraftTabsState(): { tabs: ToolTab<typeof DEFAULT_SPECCRAFT_TAB_STATE>[]; activeTabId: string } {
+  if (typeof window !== 'undefined') {
+    try {
+      const savedTabs = localStorage.getItem(SPECCRAFT_TABS_LOCAL_STORAGE_KEY);
+      const savedActiveTabId = localStorage.getItem(SPECCRAFT_ACTIVE_TAB_LOCAL_STORAGE_KEY);
+      if (savedTabs) {
+        const parsedTabs = JSON.parse(savedTabs);
+        if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+          return {
+            tabs: parsedTabs,
+            activeTabId: (savedActiveTabId && parsedTabs.some((t: any) => t.id === savedActiveTabId)) ? savedActiveTabId : parsedTabs[0].id,
+          };
+        }
+      }
+    } catch {}
+  }
+  return { tabs: initialSpecCraftTab(), activeTabId: 'tab-1' };
+}
+
+export const useSpecCraftTabsStore = create<SpecCraftTabsState>(((set: (fn: (state: SpecCraftTabsState) => Partial<SpecCraftTabsState> | SpecCraftTabsState) => void) => {
+  const initial = getInitialSpecCraftTabsState();
+  return {
+    tabs: initial.tabs,
+    activeTabId: initial.activeTabId,
+    setTabs: (tabs: ToolTab<typeof DEFAULT_SPECCRAFT_TAB_STATE>[]) => set(() => ({ tabs })),
+    setActiveTabId: (id: string) => set(() => ({ activeTabId: id })),
+    resetTabs: () => set(() => ({ tabs: initialSpecCraftTab(), activeTabId: 'tab-1' })),
+  };
+}));
+export type { SpecCraftTabsState }; 
