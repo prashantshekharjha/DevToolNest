@@ -18,6 +18,8 @@ import { v4 as uuidv4 } from "uuid";
 import { useEncoderDecoderTabsStore, EncoderDecoderTabsState } from '@/lib/toolTabsStore';
 
 const LOCAL_STORAGE_KEY = "devtoolnest-encoder-decoder";
+const TABS_LOCAL_STORAGE_KEY = "devtoolnest-encoder-tabs";
+const ACTIVE_TAB_LOCAL_STORAGE_KEY = "devtoolnest-encoder-active-tab";
 
 interface EncryptionMethod {
   id: string;
@@ -254,6 +256,56 @@ export default function EncoderDecoder() {
     const data = { tabId: activeTabId, input: activeTab.state.input, method: activeTab.state.activeMethod, operation: activeTab.state.operation };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
   }, [activeTabId, activeTab.state.input, activeTab.state.activeMethod, activeTab.state.operation]);
+
+  // Persist tabs and activeTabId to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem(TABS_LOCAL_STORAGE_KEY, JSON.stringify(tabs));
+  }, [tabs]);
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAB_LOCAL_STORAGE_KEY, activeTabId);
+  }, [activeTabId]);
+
+  // Restore tabs and activeTabId from localStorage on mount
+  useEffect(() => {
+    const savedTabs = localStorage.getItem(TABS_LOCAL_STORAGE_KEY);
+    const savedActiveTabId = localStorage.getItem(ACTIVE_TAB_LOCAL_STORAGE_KEY);
+    if (savedTabs) {
+      try {
+        const parsedTabs = JSON.parse(savedTabs);
+        if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+          setTabs(parsedTabs);
+          if (savedActiveTabId && parsedTabs.some((t: any) => t.id === savedActiveTabId)) {
+            setActiveTabId(savedActiveTabId);
+          } else {
+            setActiveTabId(parsedTabs[0].id);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
+  // Context menu handlers
+  const closeTabsToLeft = (id: string) => {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx > 0) {
+      const keep = tabs.slice(idx);
+      setTabs(keep);
+      if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[0].id);
+    }
+  };
+  const closeTabsToRight = (id: string) => {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx >= 0 && idx < tabs.length - 1) {
+      const keep = tabs.slice(0, idx + 1);
+      setTabs(keep);
+      if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[keep.length - 1].id);
+    }
+  };
+  const closeTabsOthers = (id: string) => {
+    const keep = tabs.filter(t => t.id === id);
+    setTabs(keep);
+    setActiveTabId(id);
+  };
 
   const processInput = () => {
     if (!activeTab.state.input.trim()) {
@@ -589,255 +641,258 @@ export default function EncoderDecoder() {
         onTabAdd={addTab}
         onTabClose={closeTab}
         onTabRename={renameTab}
+        onTabCloseToLeft={closeTabsToLeft}
+        onTabCloseToRight={closeTabsToRight}
+        onTabCloseOthers={closeTabsOthers}
         renderTabContent={(tab) => {
           const method = ENCRYPTION_METHODS.find(m => m.id === tab.state.activeMethod);
           const needsKey = ["aes", "des", "3des", "blowfish", "rc4"].includes(tab.state.activeMethod);
 
           return (
             <div className="flex flex-col h-full min-h-0">
-              {/* Header */}
-              <div className="text-center space-y-2">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Encoder/Decoder
-                </h1>
-                <p className="text-muted-foreground">
-                  Comprehensive encryption toolkit for encoding, decoding, hashing, and encrypting data
-                </p>
-              </div>
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          Encoder/Decoder
+        </h1>
+        <p className="text-muted-foreground">
+          Comprehensive encryption toolkit for encoding, decoding, hashing, and encrypting data
+        </p>
+      </div>
 
-              {/* Method Selection - Always Visible */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Lock className="w-5 h-5 text-gray-600" />
-                      <h2 className="text-xl font-semibold">Encryption Method</h2>
-                    </div>
-                    
-                    {/* Category Tabs */}
+      {/* Method Selection - Always Visible */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="w-5 h-5 text-gray-600" />
+              <h2 className="text-xl font-semibold">Encryption Method</h2>
+            </div>
+            
+            {/* Category Tabs */}
                     <Tabs value={tab.state.activeCategory} onValueChange={setActiveCategory => updateTabState(tab.id, (state) => ({ ...state, activeCategory: setActiveCategory }))} className="w-full">
-                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="basic" className="text-base font-semibold">Basic</TabsTrigger>
-                        <TabsTrigger value="hash" className="text-base font-semibold">Hash</TabsTrigger>
-                        <TabsTrigger value="symmetric" className="text-base font-semibold">Symmetric</TabsTrigger>
-                        <TabsTrigger value="asymmetric" className="text-base font-semibold">Asymmetric</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="basic" className="mt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {ENCRYPTION_METHODS.filter(m => m.category === 'basic').map(method => (
-                            <Button
-                              key={method.id}
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic" className="text-base font-semibold">Basic</TabsTrigger>
+                <TabsTrigger value="hash" className="text-base font-semibold">Hash</TabsTrigger>
+                <TabsTrigger value="symmetric" className="text-base font-semibold">Symmetric</TabsTrigger>
+                <TabsTrigger value="asymmetric" className="text-base font-semibold">Asymmetric</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ENCRYPTION_METHODS.filter(m => m.category === 'basic').map(method => (
+                    <Button
+                      key={method.id}
                               variant={tab.state.activeMethod === method.id ? "default" : "outline"}
-                              className={`h-auto p-4 flex flex-col items-center gap-2 ${
+                      className={`h-auto p-4 flex flex-col items-center gap-2 ${
                                 tab.state.activeMethod === method.id 
-                                  ? "bg-gray-600 text-white hover:bg-gray-700" 
-                                  : "hover:bg-gray-100"
-                              }`}
-                              onClick={() => {
+                          ? "bg-gray-600 text-white hover:bg-gray-700" 
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => {
                                 updateTabState(tab.id, (state) => ({
                                   ...state,
                                   activeMethod: method.id,
                                   activeCategory: method.category,
                                   ...(method.category === 'hash' ? { operation: 'encode' } : {})
                                 }));
-                              }}
-                            >
-                              <method.icon className="w-5 h-5" />
-                              <div className="text-center">
-                                <div className="font-medium text-sm">{method.name}</div>
-                                <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="hash" className="mt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {ENCRYPTION_METHODS.filter(m => m.category === 'hash').map(method => (
-                            <Button
-                              key={method.id}
+                      }}
+                    >
+                      <method.icon className="w-5 h-5" />
+                      <div className="text-center">
+                        <div className="font-medium text-sm">{method.name}</div>
+                        <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="hash" className="mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ENCRYPTION_METHODS.filter(m => m.category === 'hash').map(method => (
+                    <Button
+                      key={method.id}
                               variant={tab.state.activeMethod === method.id ? "default" : "outline"}
-                              className={`h-auto p-4 flex flex-col items-center gap-2 ${
+                      className={`h-auto p-4 flex flex-col items-center gap-2 ${
                                 tab.state.activeMethod === method.id 
-                                  ? "bg-gray-600 text-white hover:bg-gray-700" 
-                                  : "hover:bg-gray-100"
-                              }`}
-                              onClick={() => {
+                          ? "bg-gray-600 text-white hover:bg-gray-700" 
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => {
                                 updateTabState(tab.id, (state) => ({
                                   ...state,
                                   activeMethod: method.id,
                                   activeCategory: method.category,
                                   ...(method.category === 'hash' ? { operation: 'encode' } : {})
                                 }));
-                              }}
-                            >
-                              <method.icon className="w-5 h-5" />
-                              <div className="text-center">
-                                <div className="font-medium text-sm">{method.name}</div>
-                                <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="symmetric" className="mt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {ENCRYPTION_METHODS.filter(m => m.category === 'symmetric').map(method => (
-                            <Button
-                              key={method.id}
+                      }}
+                    >
+                      <method.icon className="w-5 h-5" />
+                      <div className="text-center">
+                        <div className="font-medium text-sm">{method.name}</div>
+                        <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="symmetric" className="mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ENCRYPTION_METHODS.filter(m => m.category === 'symmetric').map(method => (
+                    <Button
+                      key={method.id}
                               variant={tab.state.activeMethod === method.id ? "default" : "outline"}
-                              className={`h-auto p-4 flex flex-col items-center gap-2 ${
+                      className={`h-auto p-4 flex flex-col items-center gap-2 ${
                                 tab.state.activeMethod === method.id 
-                                  ? "bg-gray-600 text-white hover:bg-gray-700" 
-                                  : "hover:bg-gray-100"
-                              }`}
-                              onClick={() => {
+                          ? "bg-gray-600 text-white hover:bg-gray-700" 
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => {
                                 updateTabState(tab.id, (state) => ({
                                   ...state,
                                   activeMethod: method.id,
                                   activeCategory: method.category,
                                   ...(method.category === 'hash' ? { operation: 'encode' } : {})
                                 }));
-                              }}
-                            >
-                              <method.icon className="w-5 h-5" />
-                              <div className="text-center">
-                                <div className="font-medium text-sm">{method.name}</div>
-                                <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="asymmetric" className="mt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {ENCRYPTION_METHODS.filter(m => m.category === 'asymmetric').map(method => (
-                            <Button
-                              key={method.id}
+                      }}
+                    >
+                      <method.icon className="w-5 h-5" />
+                      <div className="text-center">
+                        <div className="font-medium text-sm">{method.name}</div>
+                        <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="asymmetric" className="mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ENCRYPTION_METHODS.filter(m => m.category === 'asymmetric').map(method => (
+                    <Button
+                      key={method.id}
                               variant={tab.state.activeMethod === method.id ? "default" : "outline"}
-                              className={`h-auto p-4 flex flex-col items-center gap-2 ${
+                      className={`h-auto p-4 flex flex-col items-center gap-2 ${
                                 tab.state.activeMethod === method.id 
-                                  ? "bg-gray-600 text-white hover:bg-gray-700" 
-                                  : "hover:bg-gray-100"
-                              }`}
-                              onClick={() => {
+                          ? "bg-gray-600 text-white hover:bg-gray-700" 
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => {
                                 updateTabState(tab.id, (state) => ({
                                   ...state,
                                   activeMethod: method.id,
                                   activeCategory: method.category,
                                   ...(method.category === 'hash' ? { operation: 'encode' } : {})
                                 }));
-                              }}
-                            >
-                              <method.icon className="w-5 h-5" />
-                              <div className="text-center">
-                                <div className="font-medium text-sm">{method.name}</div>
-                                <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                </CardContent>
-              </Card>
+                      }}
+                    >
+                      <method.icon className="w-5 h-5" />
+                      <div className="text-center">
+                        <div className="font-medium text-sm">{method.name}</div>
+                        <div className="text-xs text-[color:#bfae6a]">{method.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Operation Controls */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-blue-600" />
-                      <h2 className="text-xl font-semibold">Operation</h2>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
+      {/* Operation Controls */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold">Operation</h2>
+            </div>
+            <div className="flex gap-2">
+              <Button
                         variant={tab.state.operation === 'encode' ? "default" : "outline"}
                         onClick={() => updateTabState(tab.id, (state) => ({ ...state, operation: 'encode' }))}
                         disabled={['md5', 'sha1', 'sha256', 'sha512', 'sha3-256', 'sha3-512', 'ripemd160', 'whirlpool'].includes(tab.state.activeMethod)}
                         className={tab.state.operation === 'encode' ? "bg-[#2d1c0f] text-white hover:bg-[#444]" : ""}
                         style={{ pointerEvents: ['md5', 'sha1', 'sha256', 'sha512', 'sha3-256', 'sha3-512', 'ripemd160', 'whirlpool'].includes(tab.state.activeMethod) ? 'none' : 'auto' }}
-                      >
-                        <Lock className="w-4 h-4 mr-2" />
-                        Encode
-                      </Button>
-                      <Button
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Encode
+              </Button>
+              <Button
                         variant={tab.state.operation === 'decode' ? "default" : "outline"}
                         onClick={() => updateTabState(tab.id, (state) => ({ ...state, operation: 'decode' }))}
                         disabled={['md5', 'sha1', 'sha256', 'sha512', 'sha3-256', 'sha3-512', 'ripemd160', 'whirlpool'].includes(tab.state.activeMethod)}
                         className={tab.state.operation === 'decode' ? "bg-[#2d1c0f] text-white hover:bg-[#444]" : ""}
                         style={{ pointerEvents: ['md5', 'sha1', 'sha256', 'sha512', 'sha3-256', 'sha3-512', 'ripemd160', 'whirlpool'].includes(tab.state.activeMethod) ? 'none' : 'auto' }}
-                      >
-                        <Unlock className="w-4 h-4 mr-2" />
-                        Decode
-                      </Button>
-                    </div>
-                  </div>
+              >
+                <Unlock className="w-4 h-4 mr-2" />
+                Decode
+              </Button>
+            </div>
+          </div>
 
-                  {/* RSA Key Fields */}
+          {/* RSA Key Fields */}
                   {tab.state.activeMethod === 'rsa' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="rsa-public">Public Key (PEM)</Label>
-                        <Textarea
-                          id="rsa-public"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label htmlFor="rsa-public">Public Key (PEM)</Label>
+                <Textarea
+                  id="rsa-public"
                           value={tab.state.rsaPublicKey}
                           onChange={e => updateTabState(tab.id, (state) => ({ ...state, rsaPublicKey: e.target.value }))}
-                          placeholder="Paste or generate a public key (PEM)"
-                          rows={6}
+                  placeholder="Paste or generate a public key (PEM)"
+                  rows={6}
                           className="font-mono max-h-40"
-                        />
-                        <div className="flex gap-2 mt-1">
+                />
+                <div className="flex gap-2 mt-1">
                           <Button size="sm" variant="outline" onClick={() => copyToClipboard(tab.state.rsaPublicKey)} disabled={!tab.state.rsaPublicKey}>Copy</Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="rsa-private">Private Key (PEM)</Label>
-                        <Textarea
-                          id="rsa-private"
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rsa-private">Private Key (PEM)</Label>
+                <Textarea
+                  id="rsa-private"
                           value={tab.state.rsaPrivateKey}
                           onChange={e => updateTabState(tab.id, (state) => ({ ...state, rsaPrivateKey: e.target.value }))}
-                          placeholder="Paste or generate a private key (PEM)"
-                          rows={6}
+                  placeholder="Paste or generate a private key (PEM)"
+                  rows={6}
                           className="font-mono max-h-40"
-                        />
-                        <div className="flex gap-2 mt-1">
+                />
+                <div className="flex gap-2 mt-1">
                           <Button size="sm" variant="outline" onClick={() => copyToClipboard(tab.state.rsaPrivateKey)} disabled={!tab.state.rsaPrivateKey}>Copy</Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-                  {/* RSA Key Generation */}
+          {/* RSA Key Generation */}
                   {tab.state.activeMethod === 'rsa' && (
-                    <div className="flex items-center gap-4 mb-4">
-                      <Label htmlFor="rsa-keysize">Key Size:</Label>
+            <div className="flex items-center gap-4 mb-4">
+              <Label htmlFor="rsa-keysize">Key Size:</Label>
                       <div className="w-32">
                         <Select value={String(tab.state.rsaKeySize)} onValueChange={v => updateTabState(tab.id, (state) => ({ ...state, rsaKeySize: Number(v) }))}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1024">1024</SelectItem>
-                            <SelectItem value="2048">2048</SelectItem>
-                            <SelectItem value="4096">4096</SelectItem>
-                          </SelectContent>
-                        </Select>
+                <SelectContent>
+                  <SelectItem value="1024">1024</SelectItem>
+                  <SelectItem value="2048">2048</SelectItem>
+                  <SelectItem value="4096">4096</SelectItem>
+                </SelectContent>
+              </Select>
                       </div>
-                      <Button onClick={async () => {
+              <Button onClick={async () => {
                         updateTabState(tab.id, (state) => ({ ...state, rsaGenerating: true }));
-                        try {
-                          await new Promise(resolve => setTimeout(resolve, 100)); // allow UI update
+                try {
+                  await new Promise(resolve => setTimeout(resolve, 100)); // allow UI update
                           forge.pki.rsa.generateKeyPair({bits: tab.state.rsaKeySize, workers: -1}, (err, keypair) => {
                             updateTabState(tab.id, (state) => {
-                              if (err) {
-                                toast({ title: 'Key generation error', description: String(err), variant: 'destructive' });
+                    if (err) {
+                      toast({ title: 'Key generation error', description: String(err), variant: 'destructive' });
                                 return { ...state, rsaGenerating: false };
-                              }
-                              toast({ title: 'Key pair generated', description: 'RSA key pair generated successfully' });
+                    }
+                    toast({ title: 'Key pair generated', description: 'RSA key pair generated successfully' });
                               return {
                                 ...state,
                                 rsaGenerating: false,
@@ -845,186 +900,186 @@ export default function EncoderDecoder() {
                                 rsaPrivateKey: forge.pki.privateKeyToPem(keypair.privateKey),
                               };
                             });
-                          });
-                        } catch (e) {
+                  });
+                } catch (e) {
                           updateTabState(tab.id, (state) => ({ ...state, rsaGenerating: false }));
-                          toast({ title: 'Key generation error', description: String(e), variant: 'destructive' });
-                        }
+                  toast({ title: 'Key generation error', description: String(e), variant: 'destructive' });
+                }
                       }} disabled={tab.state.rsaGenerating}>
                         {tab.state.rsaGenerating ? 'Generating...' : 'Generate Key Pair'}
-                      </Button>
-                    </div>
-                  )}
+              </Button>
+            </div>
+          )}
 
-                  {needsKey && (
-                    <>
-                      {/* Encryption Options */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="key">Encryption Key</Label>
-                          <div className="flex gap-2">
-                            <div className="relative flex-1">
-                              <Input
-                                id="key"
+          {needsKey && (
+            <>
+              {/* Encryption Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key">Encryption Key</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="key"
                                 type={tab.state.showKey ? "text" : "password"}
                                 value={tab.state.key}
                                 onChange={(e) => updateTabState(tab.id, (state) => ({ ...state, key: e.target.value }))}
-                                placeholder="Enter encryption key"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-1 top-1 h-8 w-8 p-0"
+                        placeholder="Enter encryption key"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1 h-8 w-8 p-0"
                                 onClick={() => updateTabState(tab.id, (state) => ({ ...state, showKey: !state.showKey }))}
-                              >
+                      >
                                 {tab.state.showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                            <Button variant="outline" onClick={generateRandomKey}>
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="iv">Initialization Vector (IV)</Label>
-                          <div className="flex gap-2">
-                            <div className="relative flex-1">
-                              <Input
-                                id="iv"
+                      </Button>
+                    </div>
+                    <Button variant="outline" onClick={generateRandomKey}>
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="iv">Initialization Vector (IV)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="iv"
                                 type={tab.state.showIv ? "text" : "password"}
                                 value={tab.state.iv}
                                 onChange={(e) => updateTabState(tab.id, (state) => ({ ...state, iv: e.target.value }))}
                                 placeholder={tab.state.activeMethod === 'rc4' ? "Not used for RC4" : "Enter IV (optional)"}
                                 disabled={tab.state.activeMethod === 'rc4'}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-1 top-1 h-8 w-8 p-0"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1 h-8 w-8 p-0"
                                 onClick={() => updateTabState(tab.id, (state) => ({ ...state, showIv: !state.showIv }))}
                                 disabled={tab.state.activeMethod === 'rc4'}
-                              >
+                      >
                                 {tab.state.showIv ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                            <Button variant="outline" onClick={generateRandomIv} disabled={tab.state.activeMethod === 'rc4'}>
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      {/* AES Specific Options */}
-                      {tab.state.activeMethod === 'aes' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div className="space-y-2 w-full">
-                            <Label htmlFor="aes-mode">AES Mode</Label>
-                            <div className="w-full">
-                              <Select value={tab.state.aesMode} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesMode: val }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {AES_MODES.map(mode => (
-                                    <SelectItem key={mode.value} value={mode.value}>
-                                      {mode.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="space-y-2 w-full">
-                            <Label htmlFor="aes-padding">Padding</Label>
-                            <div className="w-full">
-                              <Select value={tab.state.aesPadding} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesPadding: val }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {AES_PADDING.map(padding => (
-                                    <SelectItem key={padding.value} value={padding.value}>
-                                      {padding.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Input/Output */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0 flex-1 overflow-hidden">
-                {/* Input */}
-                <Card className="h-full min-h-0 flex-1 flex flex-col overflow-hidden">
-                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-green-600" />
-                        <h2 className="text-xl font-semibold">Input</h2>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={clearAll}>
-                        Clear
                       </Button>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <Textarea
+                            <Button variant="outline" onClick={generateRandomIv} disabled={tab.state.activeMethod === 'rc4'}>
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {/* AES Specific Options */}
+                      {tab.state.activeMethod === 'aes' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="space-y-2 w-full">
+                    <Label htmlFor="aes-mode">AES Mode</Label>
+                            <div className="w-full">
+                              <Select value={tab.state.aesMode} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesMode: val }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AES_MODES.map(mode => (
+                          <SelectItem key={mode.value} value={mode.value}>
+                            {mode.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                          </div>
+                          <div className="space-y-2 w-full">
+                    <Label htmlFor="aes-padding">Padding</Label>
+                            <div className="w-full">
+                              <Select value={tab.state.aesPadding} onValueChange={val => updateTabState(tab.id, (state) => ({ ...state, aesPadding: val }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AES_PADDING.map(padding => (
+                          <SelectItem key={padding.value} value={padding.value}>
+                            {padding.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                            </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Input/Output */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0 flex-1 overflow-hidden">
+        {/* Input */}
+                <Card className="h-full min-h-0 flex-1 flex flex-col overflow-hidden">
+                  <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-600" />
+                <h2 className="text-xl font-semibold">Input</h2>
+              </div>
+              <Button variant="outline" size="sm" onClick={clearAll}>
+                Clear
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <Textarea
                         value={tab.state.input}
                         onChange={(e) => updateTabState(tab.id, (state) => ({ ...state, input: e.target.value }))}
                         placeholder={`Enter text to ${tab.state.operation}...`}
                         className="min-h-[200px] font-mono h-full min-h-0 flex-1 overflow-auto"
-                      />
-                      
-                      <div className="flex gap-2">
-                        <Button onClick={processInput} className="flex-1 bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded">
+              />
+              
+              <div className="flex gap-2">
+                <Button onClick={processInput} className="flex-1 bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded">
                           {tab.state.operation === 'encode' ? 'Encode' : 'Decode'}
-                        </Button>
-                        <Button variant="outline" onClick={swapInputs}>
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                </Button>
+                <Button variant="outline" onClick={swapInputs}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                {/* Output */}
+        {/* Output */}
                 <Card className="h-full min-h-0 flex-1 flex flex-col overflow-hidden">
                   <CardContent className="p-6 h-full min-h-0 flex-1 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Code className="w-5 h-5 text-blue-600" />
-                        <h2 className="text-xl font-semibold">Output</h2>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Code className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-semibold">Output</h2>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
                         onClick={() => copyToClipboard(tab.state.output)}
                         disabled={!tab.state.output}
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-4">
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
                       <div className="min-h-[200px] p-3 border rounded-md bg-muted/30 font-mono text-sm whitespace-pre-wrap overflow-auto h-full min-h-0 flex-1 break-all">
                         {tab.state.output || 'Output will appear here...'}
-                      </div>
-                      
-                      {tab.state.output && (
-                        <div className="text-xs text-muted-foreground">
-                          Length: {tab.state.output.length} characters
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
+              
+                      {tab.state.output && (
+                <div className="text-xs text-muted-foreground">
+                          Length: {tab.state.output.length} characters
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
             </div>
           );
         }}

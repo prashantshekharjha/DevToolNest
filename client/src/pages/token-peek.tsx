@@ -42,6 +42,8 @@ function prettyJSON(obj: any) {
 }
 
 const LOCAL_STORAGE_KEY = "devtoolnest-jwt-token";
+const TABS_LOCAL_STORAGE_KEY = "devtoolnest-jwt-token-tabs";
+const ACTIVE_TAB_LOCAL_STORAGE_KEY = "devtoolnest-jwt-token-active-tab";
 
 // Helper to safely parse JSON for ClaimsTable and handlers
 function safeParseJSON(str: string) {
@@ -225,6 +227,56 @@ export default function TokenPeek() {
     if (decodeToken) localStorage.setItem(LOCAL_STORAGE_KEY, decodeToken);
   }, [decodeToken]);
 
+  // Persist tabs and activeTabId to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem(TABS_LOCAL_STORAGE_KEY, JSON.stringify(tabs));
+  }, [tabs]);
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAB_LOCAL_STORAGE_KEY, activeTabId);
+  }, [activeTabId]);
+
+  // Restore tabs and activeTabId from localStorage on mount
+  useEffect(() => {
+    const savedTabs = localStorage.getItem(TABS_LOCAL_STORAGE_KEY);
+    const savedActiveTabId = localStorage.getItem(ACTIVE_TAB_LOCAL_STORAGE_KEY);
+    if (savedTabs) {
+      try {
+        const parsedTabs = JSON.parse(savedTabs);
+        if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+          setTabs(parsedTabs);
+          if (savedActiveTabId && parsedTabs.some((t: any) => t.id === savedActiveTabId)) {
+            setActiveTabId(savedActiveTabId);
+          } else {
+            setActiveTabId(parsedTabs[0].id);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
+  // Context menu handlers
+  const closeTabsToLeft = (id: string) => {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx > 0) {
+      const keep = tabs.slice(idx);
+      setTabs(keep);
+      if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[0].id);
+    }
+  };
+  const closeTabsToRight = (id: string) => {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx >= 0 && idx < tabs.length - 1) {
+      const keep = tabs.slice(0, idx + 1);
+      setTabs(keep);
+      if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[keep.length - 1].id);
+    }
+  };
+  const closeTabsOthers = (id: string) => {
+    const keep = tabs.filter(t => t.id === id);
+    setTabs(keep);
+    setActiveTabId(id);
+  };
+
   // Decode JWT
   const handleDecodeToken = () => {
     updateTabState(activeTabId, (state) => {
@@ -390,6 +442,9 @@ export default function TokenPeek() {
         onTabAdd={addTab}
         onTabClose={closeTab}
         onTabRename={renameTab}
+        onTabCloseToLeft={closeTabsToLeft}
+        onTabCloseToRight={closeTabsToRight}
+        onTabCloseOthers={closeTabsOthers}
         renderTabContent={(tab) => {
           const {
             tab: currentTab,
