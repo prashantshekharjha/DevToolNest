@@ -498,7 +498,7 @@ export default function TokenPeek() {
                           className="w-full font-mono text-base border-none min-h-[120px] bg-white text-[#2d1c0f] min-w-0"
                         />
                         <div className="flex justify-end">
-                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded font-mono">Decode</Button>
+                          <Button size="lg" className="bg-[#2d1c0f] text-white hover:bg-[#444] px-8 py-2 rounded font-mono" onClick={handleDecodeToken}>Decode</Button>
                         </div>
                       </div>
                     </div>
