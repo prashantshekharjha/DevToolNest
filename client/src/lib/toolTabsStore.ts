@@ -242,4 +242,64 @@ export const useSpecCraftTabsStore = create<SpecCraftTabsState>(((set: (fn: (sta
     resetTabs: () => set(() => ({ tabs: initialSpecCraftTab(), activeTabId: 'tab-1' })),
   };
 }));
-export type { SpecCraftTabsState }; 
+export type { SpecCraftTabsState };
+
+// TimeFlip multi-tab support
+const DEFAULT_TIMEFLIP_TAB_STATE = {
+  epochTimestamp: '',
+  humanDate: '',
+  timezone: 'UTC',
+  conversions: [] as Array<{
+    timestamp: number;
+    human: string;
+    timezone: string;
+  }>,
+  activeTab: 'converter' as 'converter' | 'current' | 'history',
+};
+
+interface TimeFlipTabsState {
+  tabs: ToolTab<typeof DEFAULT_TIMEFLIP_TAB_STATE>[];
+  activeTabId: string;
+  setTabs: (tabs: ToolTab<typeof DEFAULT_TIMEFLIP_TAB_STATE>[]) => void;
+  setActiveTabId: (id: string) => void;
+  resetTabs: () => void;
+}
+
+const initialTimeFlipTab = (): ToolTab<typeof DEFAULT_TIMEFLIP_TAB_STATE>[] => [
+  { id: 'tab-1', title: 'Tab 1', state: { ...DEFAULT_TIMEFLIP_TAB_STATE } },
+];
+
+const TIMEFLIP_TABS_LOCAL_STORAGE_KEY = "devtoolnest-timeflip-tabs";
+const TIMEFLIP_ACTIVE_TAB_LOCAL_STORAGE_KEY = "devtoolnest-timeflip-active-tab";
+
+function getInitialTimeFlipTabsState(): { tabs: ToolTab<typeof DEFAULT_TIMEFLIP_TAB_STATE>[]; activeTabId: string } {
+  if (typeof window !== 'undefined') {
+    try {
+      const savedTabs = localStorage.getItem(TIMEFLIP_TABS_LOCAL_STORAGE_KEY);
+      const savedActiveTabId = localStorage.getItem(TIMEFLIP_ACTIVE_TAB_LOCAL_STORAGE_KEY);
+      if (savedTabs) {
+        const parsedTabs = JSON.parse(savedTabs);
+        if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+          return {
+            tabs: parsedTabs,
+            activeTabId: (savedActiveTabId && parsedTabs.some((t: any) => t.id === savedActiveTabId)) ? savedActiveTabId : parsedTabs[0].id,
+          };
+        }
+      }
+    } catch {}
+  }
+  return { tabs: initialTimeFlipTab(), activeTabId: 'tab-1' };
+}
+
+export const useTimeFlipTabsStore = create<TimeFlipTabsState>(((set: (fn: (state: TimeFlipTabsState) => Partial<TimeFlipTabsState> | TimeFlipTabsState) => void) => {
+  const initial = getInitialTimeFlipTabsState();
+  return {
+    tabs: initial.tabs,
+    activeTabId: initial.activeTabId,
+    setTabs: (tabs: ToolTab<typeof DEFAULT_TIMEFLIP_TAB_STATE>[]) => set(() => ({ tabs })),
+    setActiveTabId: (id: string) => set(() => ({ activeTabId: id })),
+    resetTabs: () => set(() => ({ tabs: initialTimeFlipTab(), activeTabId: 'tab-1' })),
+  };
+}));
+
+export type { TimeFlipTabsState }; 

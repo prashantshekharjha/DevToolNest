@@ -19,6 +19,7 @@ import CodeBeautifier from "@/pages/code-beautifier";
 import EncoderDecoder from "@/pages/encoder-decoder";
 import ImageSqueeze from "@/pages/image-squeeze";
 import CVForge from "@/pages/cv-forge";
+import TimeFlip from "@/pages/time-flip";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -55,6 +56,7 @@ function Router() {
           <Route path="/encoder-decoder" component={EncoderDecoder} />
           <Route path="/image-squeeze" component={ImageSqueeze} />
           <Route path="/cv-forge" component={CVForge} />
+          <Route path="/time-flip" component={TimeFlip} />
           <Route component={NotFound} />
         </Switch>
       </div>

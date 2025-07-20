@@ -6,7 +6,8 @@ import {
   FileText, 
   Code, 
   Wand2,
-  Lock
+  Lock,
+  Clock
 } from "lucide-react";
 
 export interface Tool {
@@ -63,6 +64,15 @@ export const tools: Tool[] = [
     icon: Lock,
     route: '/encoder-decoder',
     color: 'bg-purple-500',
+    status: 'ready'
+  },
+  {
+    id: 'time-flip',
+    name: 'TimeFlip',
+    description: 'Convert between Unix timestamps and human-readable dates. Support for multiple timezones and conversion history.',
+    icon: Clock,
+    route: '/time-flip',
+    color: 'bg-orange-500',
     status: 'ready'
   }
 ];
