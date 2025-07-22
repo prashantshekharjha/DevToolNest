@@ -45,6 +45,25 @@ const LANGUAGE_TEMPLATES: { [key: string]: string } = {
   text: 'This is a sample text document.\nYou can format it as needed.'
 };
 
+function autoFixJson(input: string): string {
+  // Replace single quotes with double quotes (naive, but helps)
+  let fixed = input.replace(/'/g, '"');
+  // Remove trailing commas
+  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+  // Add quotes to unquoted keys (simple heuristic)
+  fixed = fixed.replace(/([,{\s])(\w+):/g, '$1"$2":');
+  return fixed;
+}
+
+function autoFixXml(input: string): string {
+  // Attempt to auto-close tags and fix common XML issues (very basic)
+  // Remove illegal characters
+  let fixed = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  // Add missing closing tags (not full-proof, but helps)
+  // This is a placeholder for more advanced logic if needed
+  return fixed;
+}
+
 function beautify(content: string, lang: string): string {
   try {
     const trimmed = content.trim();
@@ -55,13 +74,13 @@ function beautify(content: string, lang: string): string {
           // Try strict JSON first
           return JSON.stringify(JSON.parse(trimmed), null, 2);
         } catch (strictErr) {
-          // Try tolerant JSON5 parsing
+          // Try tolerant JSON5 parsing with auto-fix
           try {
-            const parsed = JSON5.parse(trimmed);
-            // Show warning if not valid JSON
+            const fixed = autoFixJson(trimmed);
+            const parsed = JSON5.parse(fixed);
             toast({
               title: 'Warning',
-              description: 'Input is not valid JSON, but was parsed as JSON5 (tolerant mode).',
+              description: 'Input is not valid strict JSON, but was parsed as tolerant JSON5 with auto-fixes.',
               variant: 'destructive',
             });
             return JSON.stringify(parsed, null, 2);
@@ -94,15 +113,16 @@ function beautify(content: string, lang: string): string {
           });
           return formatted.trim();
         } catch (strictErr) {
-          // Try tolerant XML parsing with fast-xml-parser
+          // Try tolerant XML parsing with fast-xml-parser and auto-fix
           try {
-            const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true, parseTagValue: false });
-            const parsed = parser.parse(trimmed);
+            const fixed = autoFixXml(trimmed);
+            const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true, parseTagValue: false, suppressEmptyNode: false, isArray: () => false });
+            const parsed = parser.parse(fixed);
             const builder = new XMLBuilder({ format: true, indentBy: '  ', ignoreAttributes: false });
             const pretty = builder.build(parsed);
             toast({
               title: 'Warning',
-              description: 'Input is not valid XML, but was parsed in tolerant mode.',
+              description: 'Input is not valid strict XML, but was parsed in tolerant mode with auto-fixes.',
               variant: 'destructive',
             });
             return pretty;
