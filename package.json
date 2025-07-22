@@ -68,6 +68,7 @@
     "express-session": "^1.18.1",
     "fast-xml-parser": "^5.2.5",
     "framer-motion": "^11.13.1",
+    "hjson": "^3.2.2",
     "html2canvas": "^1.4.1",
     "immutable": "^3.8.2",
     "input-otp": "^1.4.2",

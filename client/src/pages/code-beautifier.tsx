@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useCodeBeautifierTabsStore } from '@/lib/toolTabsStore';
 import JSON5 from 'json5';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import Hjson from 'hjson';
 
 const LANGUAGES = [
   { label: 'JSON', value: 'json', ext: 'json', mime: 'application/json' },
@@ -46,46 +47,38 @@ const LANGUAGE_TEMPLATES: { [key: string]: string } = {
 };
 
 function autoFixJson(input: string): string {
-  // Replace single quotes with double quotes (naive, but helps)
-  let fixed = input.replace(/'/g, '"');
-  // Remove trailing commas
-  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
-  // Add quotes to unquoted keys (simple heuristic)
-  fixed = fixed.replace(/([,{\s])(\w+):/g, '$1"$2":');
-  return fixed;
+  // This function can be simplified as Hjson/JSON5 are very tolerant
+  return input;
 }
 
 function autoFixXml(input: string): string {
-  // Attempt to auto-close tags and fix common XML issues (very basic)
-  // Remove illegal characters
-  let fixed = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-  // Add missing closing tags (not full-proof, but helps)
-  // This is a placeholder for more advanced logic if needed
+  // Attempt to auto-close tags and fix common XML issues
+  // 1. Remove newlines and extra whitespace from inside tags
+  let fixed = input.replace(/<([^>]+)>/g, (match) => match.replace(/[\n\r\s]+/g, ' '));
+  // 2. Remove illegal characters
+  fixed = fixed.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
   return fixed;
 }
 
-function beautify(content: string, lang: string): string {
+function beautify(content: string, lang: string, toast: any): string {
   try {
     const trimmed = content.trim();
     if (!trimmed) return '';
     switch (lang) {
       case 'json': {
         try {
-          // Try strict JSON first
           return JSON.stringify(JSON.parse(trimmed), null, 2);
         } catch (strictErr) {
-          // Try tolerant JSON5 parsing with auto-fix
           try {
-            const fixed = autoFixJson(trimmed);
-            const parsed = JSON5.parse(fixed);
+            const hjsonParsed = Hjson.parse(trimmed);
             toast({
               title: 'Warning',
-              description: 'Input is not valid strict JSON, but was parsed as tolerant JSON5 with auto-fixes.',
+              description: 'Input is not valid strict JSON, but was parsed as tolerant Hjson.',
               variant: 'destructive',
             });
-            return JSON.stringify(parsed, null, 2);
-          } catch (json5Err) {
-            throw new Error('Invalid JSON: ' + (json5Err && json5Err.message));
+            return JSON.stringify(hjsonParsed, null, 2);
+          } catch (hjsonErr: any) {
+            throw new Error('Invalid JSON: ' + (hjsonErr.message || 'Unknown error'));
           }
         }
       }
@@ -95,40 +88,29 @@ function beautify(content: string, lang: string): string {
       }
       case 'xml': {
         try {
-          // Try strict DOM parsing first
-          const parser = new window.DOMParser();
-          const xmlDoc = parser.parseFromString(trimmed, 'application/xml');
-          if (xmlDoc.getElementsByTagName('parsererror').length > 0) throw new Error('Invalid XML');
-          const serializer = new window.XMLSerializer();
-          let xmlString = serializer.serializeToString(xmlDoc);
-          xmlString = xmlString.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
-          let formatted = '';
-          let pad = 0;
-          xmlString.split('\n').forEach((node) => {
-            let indent = 0;
-            if (node.match(/^<\//)) pad -= 2;
-            else if (node.match(/^<[^!?]/) && !node.match(/\/>$/)) indent = 2;
-            formatted += ' '.repeat(Math.max(0, pad)) + node + '\n';
-            pad += indent;
+          const fixed = autoFixXml(trimmed);
+          const parser = new XMLParser({
+            ignoreAttributes: false,
+            allowBooleanAttributes: true,
+            parseTagValue: false,
+            processEntities: true,
+            htmlEntities: true,
+            trimValues: false,
+            preserveOrder: true,
           });
-          return formatted.trim();
-        } catch (strictErr) {
-          // Try tolerant XML parsing with fast-xml-parser and auto-fix
-          try {
-            const fixed = autoFixXml(trimmed);
-            const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true, parseTagValue: false, suppressEmptyNode: false, isArray: () => false });
-            const parsed = parser.parse(fixed);
-            const builder = new XMLBuilder({ format: true, indentBy: '  ', ignoreAttributes: false });
-            const pretty = builder.build(parsed);
+          const parsed = parser.parse(fixed);
+          const builder = new XMLBuilder({ format: true, indentBy: '  ', ignoreAttributes: false, preserveOrder: true });
+          const pretty = builder.build(parsed);
+          if (content !== pretty) {
             toast({
               title: 'Warning',
-              description: 'Input is not valid strict XML, but was parsed in tolerant mode with auto-fixes.',
+              description: 'Input was auto-corrected and parsed in tolerant mode.',
               variant: 'destructive',
             });
-            return pretty;
-          } catch (xmlErr) {
-            throw new Error('Invalid XML: ' + (xmlErr && xmlErr.message));
           }
+          return pretty;
+        } catch (xmlErr: any) {
+          throw new Error('Invalid XML: ' + (xmlErr.message || 'Unknown error'));
         }
       }
       case 'javascript':
@@ -150,7 +132,7 @@ function beautify(content: string, lang: string): string {
         return trimmed;
     }
   } catch (e: any) {
-    throw new Error(`Beautify failed: ${(e && e.message) || e}`);
+    throw new Error(`Beautify failed: ${(typeof e === 'object' && e && 'message' in e ? e.message : String(e)) || e}`);
   }
 }
 
@@ -160,7 +142,7 @@ function minify(content: string, lang: string): string {
     if (!trimmed) return '';
     switch (lang) {
       case 'json':
-        return JSON.stringify(JSON.parse(trimmed));
+        return JSON.stringify(Hjson.parse(trimmed));
       case 'yaml': {
       const yaml = require('js-yaml');
         return yaml.dump(yaml.load(trimmed), { flowLevel: -1 });
@@ -186,7 +168,7 @@ function minify(content: string, lang: string): string {
         return trimmed;
     }
   } catch (e: any) {
-    throw new Error(`Minify failed: ${(e && e.message) || e}`);
+    throw new Error(`Minify failed: ${(typeof e === 'object' && e && 'message' in e ? e.message : String(e)) || e}`);
   }
 }
 
@@ -211,7 +193,7 @@ function validateContent(content: string, lang: string): { valid: boolean; messa
         return { valid: true, message: 'Content is valid' };
     }
   } catch (e: any) {
-    return { valid: false, message: (e && e.message) || 'Invalid content' };
+    return { valid: false, message: (typeof e === 'object' && e && 'message' in e ? e.message : String(e)) || 'Invalid content' };
   }
 }
 
@@ -219,13 +201,14 @@ const DEFAULT_TAB_STATE = {
   input: '',
   output: '',
   language: 'json',
-  mode: 'beautify',
+  mode: 'beautify' as 'beautify' | 'minify',
   error: '',
   validation: { valid: false, message: '' },
   isProcessing: false,
   showTemplates: false,
   fontSize: 16,
   maximized: 'none' as 'none' | 'input' | 'output',
+  outputEdited: false,
 };
 
 const TABS_LOCAL_STORAGE_KEY = "devtoolnest-code-beautifier-tabs";
@@ -257,7 +240,9 @@ export default function CodeBeautifier() {
     setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, title } : t)));
   };
   const updateTabState = (id: string, updater: (state: typeof DEFAULT_TAB_STATE) => typeof DEFAULT_TAB_STATE) => {
-    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) => (t.id === id ? { ...t, state: updater(t.state) } : t)));
+    setTabs(tabs.map((t: ToolTab<typeof DEFAULT_TAB_STATE>) =>
+      t.id === id ? { ...t, state: { ...DEFAULT_TAB_STATE, ...updater(t.state) } } : t
+    ));
   };
 
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
@@ -272,6 +257,7 @@ export default function CodeBeautifier() {
     showTemplates,
     fontSize,
     maximized,
+    outputEdited = false,
   } = activeTab.state;
 
   useEffect(() => {
@@ -295,11 +281,16 @@ export default function CodeBeautifier() {
       try {
         const parsedTabs = JSON.parse(savedTabs);
         if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
-          setTabs(parsedTabs);
-          if (savedActiveTabId && parsedTabs.some((t: any) => t.id === savedActiveTabId)) {
+          // Ensure every tab.state has outputEdited
+          const safeTabs = parsedTabs.map((t: any) => ({
+            ...t,
+            state: { ...DEFAULT_TAB_STATE, ...t.state, outputEdited: t.state?.outputEdited ?? false },
+          }));
+          setTabs(safeTabs);
+          if (savedActiveTabId && safeTabs.some((t: any) => t.id === savedActiveTabId)) {
             setActiveTabId(savedActiveTabId);
           } else {
-            setActiveTabId(parsedTabs[0].id);
+            setActiveTabId(safeTabs[0].id);
           }
         }
       } catch {}
@@ -310,7 +301,7 @@ export default function CodeBeautifier() {
   const closeTabsToLeft = (id: string) => {
     const idx = tabs.findIndex(t => t.id === id);
     if (idx > 0) {
-      const keep = tabs.slice(idx);
+      const keep = tabs.slice(idx).map(t => ({ ...t, state: { ...DEFAULT_TAB_STATE, ...t.state, outputEdited: t.state?.outputEdited ?? false } }));
       setTabs(keep);
       if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[0].id);
     }
@@ -318,13 +309,13 @@ export default function CodeBeautifier() {
   const closeTabsToRight = (id: string) => {
     const idx = tabs.findIndex(t => t.id === id);
     if (idx >= 0 && idx < tabs.length - 1) {
-      const keep = tabs.slice(0, idx + 1);
+      const keep = tabs.slice(0, idx + 1).map(t => ({ ...t, state: { ...DEFAULT_TAB_STATE, ...t.state, outputEdited: t.state?.outputEdited ?? false } }));
       setTabs(keep);
       if (!keep.some(t => t.id === activeTabId)) setActiveTabId(keep[keep.length - 1].id);
     }
   };
   const closeTabsOthers = (id: string) => {
-    const keep = tabs.filter(t => t.id === id);
+    const keep = tabs.filter(t => t.id === id).map(t => ({ ...t, state: { ...DEFAULT_TAB_STATE, ...t.state, outputEdited: t.state?.outputEdited ?? false } }));
     setTabs(keep);
     setActiveTabId(id);
   };
@@ -333,17 +324,17 @@ export default function CodeBeautifier() {
     const currentMode = modeOverride || mode;
     updateTabState(activeTabId, (state) => ({ ...state, error: '' }));
     try {
-      const formatted = currentMode === 'beautify' ? beautify(input, language) : minify(input, language);
-      updateTabState(activeTabId, (state) => ({ ...state, output: formatted }));
+      const formatted = currentMode === 'beautify' ? beautify(input, language, toast) : minify(input, language);
+      updateTabState(activeTabId, (state) => ({ ...state, output: formatted, outputEdited: false }));
       toast({
         title: currentMode === 'beautify' ? 'Beautified!' : 'Minified!',
         description: `Your ${language.toUpperCase()} has been ${currentMode === 'beautify' ? 'beautified' : 'minified'}.`,
       });
     } catch (e: any) {
-      updateTabState(activeTabId, (state) => ({ ...state, error: (e && e.message) || 'Failed to format content', output: '' }));
+      updateTabState(activeTabId, (state) => ({ ...state, error: (typeof e === 'object' && e && 'message' in e ? e.message : String(e)) || 'Failed to format content', output: '' }));
       toast({
         title: 'Error',
-        description: (e && e.message) || 'Failed to format content',
+        description: (typeof e === 'object' && e && 'message' in e ? e.message : String(e)) || 'Failed to format content',
         variant: 'destructive',
       });
     }
@@ -404,6 +395,7 @@ export default function CodeBeautifier() {
             showTemplates,
             fontSize,
             maximized,
+            outputEdited = false,
           } = tab.state;
           return (
             <div className="flex flex-col h-full min-h-0">
@@ -605,6 +597,7 @@ export default function CodeBeautifier() {
                       height="100%"
                       language={language}
                       value={output}
+                      onChange={value => updateTabState(tab.id, state => ({ ...state, output: value || '', outputEdited: true }))}
                       theme="vs-light"
                       options={{
                         minimap: { enabled: false },
@@ -620,7 +613,7 @@ export default function CodeBeautifier() {
                         renderLineHighlight: 'all',
                         selectOnLineNumbers: true,
                         roundedSelection: false,
-                        readOnly: true,
+                        readOnly: false, // Make output editable
                         cursorStyle: 'line',
                         scrollbar: {
                           vertical: 'visible',
@@ -631,6 +624,11 @@ export default function CodeBeautifier() {
                       }}
                   />
                 </div>
+                {(outputEdited ?? false) && (
+                  <div className="p-2 text-xs text-yellow-700 bg-yellow-50 border-t border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:border-yellow-800">
+                    Output has been edited manually.
+                  </div>
+                )}
                 {error && (
                     <div className="p-3 bg-red-50 text-red-800 border-t border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800">
                       <div className="flex items-center gap-2">
